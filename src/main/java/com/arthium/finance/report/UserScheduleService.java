@@ -6,11 +6,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
-/**
- * Reads a user's configured cron timezone from the scheduler collection.
- * Extracted into its own bean so budgets, the chat layer and the cron jobs can
- * share it without depending on each other.
- */
+
 @Service
 public class UserScheduleService {
 

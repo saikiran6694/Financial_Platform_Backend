@@ -7,7 +7,6 @@ import com.arthium.finance.report.dto.TopCategory;
 import java.time.Year;
 import java.util.Locale;
 
-/** Port of mailers/templates/report_template.py. */
 public final class ReportTemplate {
 
     private ReportTemplate() {

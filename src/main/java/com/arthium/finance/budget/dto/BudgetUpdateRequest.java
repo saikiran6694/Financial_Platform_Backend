@@ -4,7 +4,7 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Positive;
 
-/** Port of schemas/budget_schema.py::BudgetUpdate — every field optional. */
+
 public record BudgetUpdateRequest(
         @Positive Double limitAmount,
         @DecimalMin("0.1") @DecimalMax("1.0") Double alertThreshold,

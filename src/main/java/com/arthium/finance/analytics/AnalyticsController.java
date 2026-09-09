@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
 
-/** Port of routes/analytics.py. */
 @RestController
 @RequestMapping("/api/analytics")
 public class AnalyticsController {

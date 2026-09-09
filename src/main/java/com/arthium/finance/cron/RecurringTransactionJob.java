@@ -15,7 +15,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Port of cron/jobs/transaction_job.py. */
 @Component
 public class RecurringTransactionJob implements UserJob {
 

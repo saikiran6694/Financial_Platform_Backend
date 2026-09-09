@@ -2,7 +2,6 @@ package com.arthium.finance.mail.template;
 
 import java.time.Year;
 
-/** Port of mailers/templates/forgot_password_template.py. */
 public final class ForgotPasswordTemplate {
 
     private ForgotPasswordTemplate() {

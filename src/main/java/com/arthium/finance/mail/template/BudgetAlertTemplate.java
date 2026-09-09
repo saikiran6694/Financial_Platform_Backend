@@ -4,7 +4,6 @@ import com.arthium.finance.budget.BudgetStatus;
 import com.arthium.finance.mail.BudgetAlert;
 import com.arthium.finance.mail.MailerService;
 
-/** Port of mailers/templates/budget_alert_template.py. */
 public final class BudgetAlertTemplate {
 
     private BudgetAlertTemplate() {

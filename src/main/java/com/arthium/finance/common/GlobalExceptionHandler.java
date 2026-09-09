@@ -18,9 +18,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Renders every error as {"detail": "..."} — the same envelope FastAPI used.
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

@@ -3,7 +3,6 @@ package com.arthium.finance.mail;
 import com.arthium.finance.mail.template.ForgotPasswordTemplate;
 import org.springframework.stereotype.Service;
 
-/** Port of mailers/forgot_password_mail.py. */
 @Service
 public class ForgotPasswordMailer {
 

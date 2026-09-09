@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/** Port of services/reports.py. */
 @Service
 public class ReportService {
 

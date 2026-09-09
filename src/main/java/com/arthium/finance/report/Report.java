@@ -7,7 +7,6 @@ import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
 
-/** Port of models/report_models.py::Reports. Collection: reports */
 @Document(collection = "reports")
 public class Report {
 

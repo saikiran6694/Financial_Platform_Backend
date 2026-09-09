@@ -7,7 +7,6 @@ import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
 
-/** Port of models/user_models.py::User. Collection: users */
 @Document(collection = "users")
 public class User {
 

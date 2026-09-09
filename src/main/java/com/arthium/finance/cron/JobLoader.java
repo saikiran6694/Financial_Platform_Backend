@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/** Port of cron/loader.py — registers every user's jobs at startup. */
 @Component
 @Order(2)
 public class JobLoader implements ApplicationRunner {

@@ -5,11 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
 
-/**
- * Port of schemas/user_schema.py::UserPrivate.
- * FastAPI serialised response models by alias, so the id field goes out as
- * "_id" — kept identical here so existing clients don't break.
- */
+
 public record UserPrivateDto(
         @JsonProperty("_id") String id,
         String name,

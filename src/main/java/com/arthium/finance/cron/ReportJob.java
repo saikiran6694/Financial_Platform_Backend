@@ -22,7 +22,6 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 
-/** Port of cron/jobs/report_job.py. */
 @Component
 public class ReportJob implements UserJob {
 

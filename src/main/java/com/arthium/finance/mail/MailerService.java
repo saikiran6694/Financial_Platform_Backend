@@ -12,7 +12,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Port of mailers/mailer.py — sends through the Resend HTTP API.
+ * sends through the Resend HTTP API.
  */
 @Service
 public class MailerService {

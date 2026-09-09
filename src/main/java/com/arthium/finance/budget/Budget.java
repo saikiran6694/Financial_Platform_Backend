@@ -7,13 +7,6 @@ import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
 
-/**
- * Port of models/budget_models.py::Budget. Collection: budgets
- *
- * limitAmount is stored in CENTS to stay consistent with Transaction.amount.
- * alertThreshold is a fraction (0.1 - 1.0): once spend for the category reaches
- * that fraction of the limit, the daily budget cron sends a warning email.
- */
 @Document(collection = "budgets")
 public class Budget {
 

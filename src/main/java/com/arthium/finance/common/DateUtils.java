@@ -9,9 +9,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
-/**
- * Port of utils/utils.py and utils/date.py date helpers.
- */
 public final class DateUtils {
 
     public static final ZoneId UTC = ZoneOffset.UTC;

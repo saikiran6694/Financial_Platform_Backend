@@ -12,13 +12,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
-/**
- * Port of bootstrap/db.py::_ensure_indexes.
- *
- * Every hot-path query filters by user_id (plus a secondary field like date or
- * category); without these, they are full collection scans. Index creation is
- * idempotent, so running it on every boot is safe.
- */
 @Component
 @Order(1)
 public class MongoIndexInitializer implements ApplicationRunner {

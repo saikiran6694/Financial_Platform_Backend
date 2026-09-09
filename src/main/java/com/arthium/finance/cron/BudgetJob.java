@@ -22,15 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Port of cron/jobs/budget_job.py.
- *
- * For each active budget whose current-month spend has crossed the warning
- * threshold or the limit, send one alert email — and only one per level per
- * calendar month. A budget that already warned can still escalate to
- * "exceeded" later the same month; after that nothing more fires until the
- * next month resets the period key.
- */
 @Component
 public class BudgetJob implements UserJob {
 

@@ -10,7 +10,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
 
-/** Port of schemas/transactions_schema.py::TransactionResponse. Amount is in DOLLARS. */
 public record TransactionResponse(
         @JsonProperty("_id") String id,
         String userId,

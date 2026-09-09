@@ -2,11 +2,6 @@ package com.arthium.finance.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/**
- * Mirrors the Settings class from config/config.py.
- * Bound from application.yml, which in turn reads the same environment
- * variable names the Python service used.
- */
 @ConfigurationProperties(prefix = "app")
 public class AppProperties {
 

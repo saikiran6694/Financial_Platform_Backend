@@ -21,7 +21,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
-/** Port of routes/users.py. */
 @RestController
 @RequestMapping("/api/user")
 public class UserController {

@@ -15,12 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
-/**
- * Port of routes/chat.py.
- * Send a natural language message about your finances; the model queries the
- * database through tools and returns a structured response (text, bullets,
- * table, chart, advice or what-if).
- */
 @RestController
 @RequestMapping("/api/chat")
 public class ChatController {

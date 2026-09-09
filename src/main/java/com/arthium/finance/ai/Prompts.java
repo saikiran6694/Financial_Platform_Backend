@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/** Port of utils/prompts.py. */
 public final class Prompts {
 
     private Prompts() {
@@ -48,7 +47,6 @@ public final class Prompts {
             }
             """.replace("__PAYMENT_METHODS__", PAYMENT_METHODS);
 
-    /** Port of report_insight_prompt. `categories` maps name -> {amount, percentage}. */
     public static String reportInsightPrompt(double totalIncome,
                                              double totalExpenses,
                                              double availableBalance,

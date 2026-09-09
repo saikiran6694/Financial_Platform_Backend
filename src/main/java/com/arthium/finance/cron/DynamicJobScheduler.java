@@ -15,12 +15,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
-/**
- * Replacement for cron/schedular.py (APScheduler).
- *
- * Jobs are keyed by "{name}_{userId}" exactly as before, so rescheduling a
- * user's report simply replaces their existing trigger.
- */
+
 @Component
 public class DynamicJobScheduler {
 

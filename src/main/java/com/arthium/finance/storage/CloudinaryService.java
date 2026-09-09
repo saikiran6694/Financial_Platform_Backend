@@ -17,13 +17,7 @@ import java.security.MessageDigest;
 import java.util.Map;
 import java.util.TreeMap;
 
-/**
- * Port of config/cloudinary_config.py.
- *
- * Uses Cloudinary's signed upload REST API directly. The signature is
- * SHA-1 over the alphabetically sorted request parameters (excluding file,
- * api_key and resource_type) concatenated with the API secret.
- */
+
 @Service
 public class CloudinaryService {
 

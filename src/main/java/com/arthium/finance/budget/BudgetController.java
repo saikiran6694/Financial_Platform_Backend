@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Port of routes/budgets.py. */
 @RestController
 @RequestMapping("/api/budget")
 public class BudgetController {

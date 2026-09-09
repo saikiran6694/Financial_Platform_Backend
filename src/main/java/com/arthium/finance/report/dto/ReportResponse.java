@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
 
-/** Port of schemas/report_schema.py::ReportResponse. */
 public record ReportResponse(
         @JsonProperty("_id") String id,
         String userId,

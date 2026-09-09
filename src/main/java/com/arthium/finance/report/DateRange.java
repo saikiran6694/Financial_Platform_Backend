@@ -2,11 +2,6 @@ package com.arthium.finance.report;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
-/**
- * Port of models/report_models.py::DateRangeEnum.
- * The wire values differ from the constant names, so they are carried
- * explicitly and used for both query-parameter binding and JSON output.
- */
 public enum DateRange {
 
     LAST_30_DAYS("30days"),

@@ -7,10 +7,6 @@ import com.arthium.finance.transaction.TransactionType;
 
 import java.time.Instant;
 
-/**
- * Port of schemas/transactions_schema.py::TransactionUpdate.
- * Every field is optional; null means "leave as is".
- */
 public record TransactionUpdateRequest(
         String title,
         TransactionType type,

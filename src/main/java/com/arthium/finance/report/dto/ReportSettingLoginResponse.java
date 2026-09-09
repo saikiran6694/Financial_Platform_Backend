@@ -4,7 +4,6 @@ import com.arthium.finance.report.ReportFrequency;
 import com.arthium.finance.report.ReportSettings;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-/** Port of schemas/report_settings_schema.py::ReportSettingLoginResponse. */
 public record ReportSettingLoginResponse(
         @JsonProperty("_id") String id,
         ReportFrequency frequency,

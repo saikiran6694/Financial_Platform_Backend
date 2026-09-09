@@ -10,7 +10,6 @@ import jakarta.validation.constraints.Size;
 
 import java.time.Instant;
 
-/** Port of schemas/transactions_schema.py::TransactionCreate. Amount is in DOLLARS. */
 public record TransactionCreateRequest(
         @NotBlank String title,
         @NotNull TransactionType type,

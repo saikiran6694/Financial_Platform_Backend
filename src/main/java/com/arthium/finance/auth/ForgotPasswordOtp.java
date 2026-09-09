@@ -7,11 +7,6 @@ import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
 
-/**
- * Port of models/forgot_password_model.py::ForgotPassword.
- * Collection: forgot_password — rows are removed automatically by the TTL index
- * on expires_at.
- */
 @Document(collection = "forgot_password")
 public class ForgotPasswordOtp {
 

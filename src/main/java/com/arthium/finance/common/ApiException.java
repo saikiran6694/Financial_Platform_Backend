@@ -2,11 +2,6 @@ package com.arthium.finance.common;
 
 import org.springframework.http.HttpStatus;
 
-/**
- * Equivalent of FastAPI's HTTPException: carries a status code and a "detail"
- * message, which the global handler renders as {"detail": "..."} so the
- * existing frontend error handling keeps working unchanged.
- */
 public class ApiException extends RuntimeException {
 
     private final HttpStatus status;

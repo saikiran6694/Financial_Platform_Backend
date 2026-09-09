@@ -13,11 +13,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Port of config/google_genai_config.py.
- * Calls the Gemini generateContent REST endpoint directly rather than pulling
- * in the google-genai SDK.
- */
+
 @Service
 public class GeminiService {
 
@@ -56,7 +52,6 @@ public class GeminiService {
         return callGemini(body);
     }
 
-    /** Port of generate_ai_insights: exactly three insight strings, or an empty list. */
     public List<String> generateAiInsights(double totalIncome,
                                            double totalExpenses,
                                            double availableBalance,

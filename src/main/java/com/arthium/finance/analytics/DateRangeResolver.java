@@ -6,7 +6,6 @@ import com.arthium.finance.report.DateRange;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 
-/** Port of utils/date.py::get_date_range. */
 public final class DateRangeResolver {
 
     private DateRangeResolver() {

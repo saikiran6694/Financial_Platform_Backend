@@ -7,11 +7,6 @@ import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
 
-/**
- * Port of models/report_settings_models.py::ReportScheduleData.
- * Collection: scheduler — one row per user, holding the cron expression and
- * timezone their jobs run in.
- */
 @Document(collection = "scheduler")
 public class ReportSchedule {
 

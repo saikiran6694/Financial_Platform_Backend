@@ -15,15 +15,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Port of services/chat.py — the agentic loop against Groq's
- * OpenAI-compatible chat completions API.
- *
- * 1. Build system prompt + history + user message
- * 2. Send to Groq with the tool definitions
- * 3. If the model calls tools, run them and feed the results back as role="tool"
- * 4. Repeat until the model answers, then parse its structured JSON
- */
 @Service
 public class GroqChatService {
 

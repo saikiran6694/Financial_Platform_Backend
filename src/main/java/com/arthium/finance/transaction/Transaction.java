@@ -7,10 +7,6 @@ import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
 
-/**
- * Port of models/transaction_models.py::Transaction. Collection: transactions
- * `amount` is stored in CENTS, converted to dollars at the service boundary.
- */
 @Document(collection = "transactions")
 public class Transaction {
 

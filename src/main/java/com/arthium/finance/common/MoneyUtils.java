@@ -3,10 +3,6 @@ package com.arthium.finance.common;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-/**
- * Port of utils/utils.py money helpers. Amounts are stored in MongoDB as
- * integer cents and converted at the service boundary.
- */
 public final class MoneyUtils {
 
     private MoneyUtils() {

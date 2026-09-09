@@ -14,14 +14,7 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Port of services/auth.py token handling.
- *
- * Implemented directly on javax.crypto.Mac rather than a JWT library so the
- * tokens are byte-for-byte compatible with the ones PyJWT issued: same header
- * ({"alg":"HS256","typ":"JWT"}), same claims ({"sub", "exp"}), same secret.
- * Tokens minted by the Python service stay valid after the cutover.
- */
+
 @Service
 public class JwtService {
 

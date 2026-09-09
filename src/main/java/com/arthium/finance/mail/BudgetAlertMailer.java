@@ -4,7 +4,6 @@ import com.arthium.finance.budget.BudgetStatus;
 import com.arthium.finance.mail.template.BudgetAlertTemplate;
 import org.springframework.stereotype.Service;
 
-/** Port of mailers/budget_alert_mail.py. */
 @Service
 public class BudgetAlertMailer {
 

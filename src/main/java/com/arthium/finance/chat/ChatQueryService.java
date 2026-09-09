@@ -29,10 +29,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-/**
- * Port of services/chat_db.py — every MongoDB query the chat model can call.
- * Each method maps 1:1 to a tool. All amounts are returned in dollars.
- */
+
 @Service
 public class ChatQueryService {
 

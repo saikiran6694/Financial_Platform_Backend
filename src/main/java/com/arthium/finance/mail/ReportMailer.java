@@ -3,7 +3,6 @@ package com.arthium.finance.mail;
 import com.arthium.finance.mail.template.ReportTemplate;
 import org.springframework.stereotype.Service;
 
-/** Port of mailers/report_mail.py. */
 @Service
 public class ReportMailer {
 

@@ -18,11 +18,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Port of services/auth.py::get_current_user.
- * Resolves the bearer token to a User document and puts it in the security
- * context, so controllers can take it via @AuthenticationPrincipal User.
- */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 

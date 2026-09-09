@@ -1,6 +1,5 @@
 package com.arthium.finance.common;
 
-/** Port of schemas/transactions_schema.py::PaginationSchema. */
 public record PaginationDto(
         int pageSize,
         int pageNumber,

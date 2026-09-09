@@ -26,7 +26,6 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.Optional;
 
-/** Port of services/auth.py. */
 @Service
 public class AuthService {
 

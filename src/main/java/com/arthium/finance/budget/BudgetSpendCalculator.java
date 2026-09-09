@@ -20,13 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Port of the spend computation in services/budgets.py.
- *
- * This is the single source of truth shared by the GET /api/budget/all route,
- * the chat query layer and the daily budget-check cron, so all three always
- * agree on the numbers.
- */
 @Component
 public class BudgetSpendCalculator {
 

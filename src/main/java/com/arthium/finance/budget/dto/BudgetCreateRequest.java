@@ -8,10 +8,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
-/**
- * Port of schemas/budget_schema.py::BudgetCreate.
- * limitAmount arrives in DOLLARS and is converted to cents before persisting.
- */
 public record BudgetCreateRequest(
         @NotBlank @Size(min = 1, max = 60) String category,
         @NotNull @Positive Double limitAmount,
