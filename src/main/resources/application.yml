@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: arthium-financial-platform
+
+  # Loads a .env file sitting next to the jar / project root, so the same
+  # variable names the Python version used keep working locally.
+  config:
+    import: "optional:file:./.env[.properties]"
+
+  # Java 25 virtual threads: every request (and every Mongo/HTTP call it makes)
+  # runs on a virtual thread, which is the closest equivalent to the
+  # async/run_in_threadpool model the FastAPI version used.
+  threads:
+    virtual:
+      enabled: true
+
+  mongodb:
+    uri: ${MONGO_URI}
+    database: ${MONGO_DATABASE_NAME}
+    auto-index-creation: false
+
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    datatype:
+      datetime:
+        write-dates-as-timestamps: false
+
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 15MB
+
+server:
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+
+
+app:
+  secret-key: ${SECRET_KEY}
+  algorithm: ${ALGORITHM:HS256}
+  access-token-expire-minutes: ${ACCESS_TOKEN_EXPIRE_MINUTES:60}
+  refresh-token-expire-minutes: ${REFRESH_TOKEN_EXPIRE_MINUTES:10080}
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
+  default-timezone: ${DEFAULT_TIMEZONE:America/St_Johns}
+
+  cloudinary:
+    cloud-name: ${CLOUDINARY_CLOUD_NAME}
+    api-key: ${CLOUDINARY_API_KEY}
+    api-secret: ${CLOUDINARY_API_SECRET}
+
+  gemini:
+    api-key: ${GOOGLE_GEMINI_API_KEY}
+    model: ${GOOGLE_GEMINI_AI_MODEL:gemini-2.0-flash}
+    base-url: ${GOOGLE_GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
+
+  groq:
+    api-key: ${GROQ_API_KEY}
+    model: ${GROQ_MODEL_NAME:openai/gpt-oss-20b}
+    base-url: ${GROQ_BASE_URL:https://api.groq.com}
+
+  resend:
+    api-key: ${RESEND_API_KEY}
+    sender: ${RESEND_MAILER_SENDER}
+    sender-name: ${RESEND_MAILER_SENDER_NAME:Saikiran}
+    base-url: ${RESEND_BASE_URL:https://api.resend.com}
+
+logging:
+  level:
+    root: INFO
+    com.arthium.finance: INFO
+    org.mongodb.driver: WARN
+    org.springframework.web: INFO
