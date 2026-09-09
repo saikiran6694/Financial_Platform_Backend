@@ -269,7 +269,3 @@ Receipt processing uploads the file to Cloudinary, sends it to Gemini for extrac
 ## 🤝 Contributing
 
 Contributions are welcome. Please open an issue or submit a pull request with a clear description of the change.
-
-## 📝 License
-
-This project is licensed under the MIT License - see the `LICENSE` file for details.
