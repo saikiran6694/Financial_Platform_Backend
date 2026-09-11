@@ -31,7 +31,7 @@ An **intelligent finance management platform** that helps users track, analyze, 
 
 ### ☁️ Cloud Integration & Deployment
 
-- MongoDB Atlas or a compatible MongoDB deployment
+- PostgreSQL (e.g. Neon) or a compatible Postgres deployment
 - Cloudinary file storage
 - Docker containerization
 - Render deployment configuration included
@@ -49,7 +49,7 @@ An **intelligent finance management platform** that helps users track, analyze, 
 
 - ☕ **Java 25**
 - 🚀 **Spring Boot 4.1.1** and Spring MVC
-- 💾 **Spring Data MongoDB** and `MongoTemplate`
+- 💾 **Spring Data JPA** (Hibernate) with PostgreSQL and Flyway migrations
 - 🤖 **Google Gemini AI** through REST for receipt analysis
 - 💬 **Groq** through its OpenAI-compatible REST API for chat
 - ☁️ **Cloudinary** for file storage
@@ -64,7 +64,7 @@ The backend exposes the HTTP contract consumed by the existing React/TypeScript 
 ### DevOps & Infrastructure
 
 - 🐳 Docker
-- MongoDB Atlas
+- PostgreSQL (e.g. Neon)
 - Render deployment configuration
 
 ## 📁 Project Structure
@@ -77,7 +77,7 @@ src/main/java/com/arthium/finance/
 ├── budget/       Budgets, status, and spend calculations
 ├── chat/         Groq chat, prompts, tools, and chat queries
 ├── common/       Exceptions, JSON, money, dates, and health checks
-├── config/       Application, MongoDB, security, REST, and scheduler config
+├── config/       Application, security, REST, and scheduler config
 ├── cron/         Dynamic scheduled jobs and report/budget automation
 ├── mail/         Resend integration and email templates
 ├── report/       Report generation and report settings
@@ -92,9 +92,8 @@ src/main/java/com/arthium/finance/
 Create a `.env` file in the project root. Spring imports it automatically through `application.yml`.
 
 ```env
-# Database
-MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/
-MONGO_DATABASE_NAME=arthium_finance
+# Database (PostgreSQL, e.g. Neon)
+POSTGRES_URI=jdbc:postgresql://host.neon.tech/dbname?user=user&password=pass&sslmode=require
 
 # Authentication
 SECRET_KEY=your-secret-key-here
@@ -132,7 +131,7 @@ Never commit `.env` or expose production credentials. Use `.env.example` as the 
 
 - **Java 25**
 - **Maven 3.9+**
-- **MongoDB Atlas** or a MongoDB replica set
+- **PostgreSQL** (e.g. a free Neon project) — Flyway creates the schema on first boot
 - API keys for Google Gemini, Groq, Cloudinary, and Resend
 - **Git** and optionally **Docker**
 
@@ -169,7 +168,7 @@ Never commit `.env` or expose production credentials. Use `.env.example` as the 
 ### Docker
 
 ```bash
-docker build -t arthium .
+docker build --platform linux/amd64 -t arthium .
 docker run --env-file .env -p 8080:8080 arthium
 ```
 
@@ -232,14 +231,14 @@ Spring MVC controller and validation
 Authentication and authorization filters
   ↓
 Domain service
-  ├── MongoDB through Spring Data MongoDB
+  ├── PostgreSQL through Spring Data JPA
   ├── Gemini for receipt analysis
   ├── Groq for financial chat
   ├── Cloudinary for media storage
   └── Resend for email delivery
 ```
 
-Receipt processing uploads the file to Cloudinary, sends it to Gemini for extraction, maps the result to a transaction, and persists it in MongoDB. Chat requests use Groq query tools to retrieve user-specific data before generating a response.
+Receipt processing uploads the file to Cloudinary, sends it to Gemini for extraction, maps the result to a transaction, and persists it in PostgreSQL. Chat requests use Groq query tools to retrieve user-specific data before generating a response.
 
 ## 🔒 Security Features
 
@@ -248,20 +247,20 @@ Receipt processing uploads the file to Cloudinary, sends it to Gemini for extrac
 - ✅ Bearer-token authentication for protected routes
 - ✅ Configurable CORS
 - ✅ Environment-based secrets
-- ✅ Authenticated MongoDB and Cloudinary integrations
+- ✅ Authenticated PostgreSQL and Cloudinary integrations
 
 ## ⚠️ Deployment Notes
 
-- MongoDB transactions require Atlas, a replica set, or a sharded cluster.
-- Scheduled jobs are loaded from MongoDB at startup.
-- Use a MongoDB-backed lock before scaling scheduled workers horizontally.
+- Scheduled jobs are loaded from PostgreSQL (the `scheduler` table) at startup.
+- Use a Postgres-backed lock (e.g. `pg_advisory_lock`) before scaling scheduled workers horizontally.
 - Do not commit `.env` or API credentials.
 
 ## 📚 Additional Resources
 
 - [Spring Boot Documentation](https://docs.spring.io/spring-boot/)
-- [Spring Data MongoDB Documentation](https://docs.spring.io/spring-data/mongodb/reference/)
-- [MongoDB Documentation](https://www.mongodb.com/docs/)
+- [Spring Data JPA Documentation](https://docs.spring.io/spring-data/jpa/reference/)
+- [Flyway Documentation](https://documentation.red-gate.com/fd)
+- [Neon Documentation](https://neon.tech/docs/introduction)
 - [Google Gemini API](https://ai.google.dev/)
 - [Groq Documentation](https://console.groq.com/docs)
 - [Cloudinary Documentation](https://cloudinary.com/documentation)

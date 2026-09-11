@@ -1,41 +1,48 @@
 package com.arthium.finance.report;
 
-import org.bson.types.ObjectId;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.UUID;
 
-@Document(collection = "reports")
+@Entity
+@Table(name = "reports")
 public class Report {
 
     @Id
-    private ObjectId id;
+    @GeneratedValue
+    private UUID id;
 
-    @Field("user_id")
-    private ObjectId userId;
+    @Column(name = "user_id")
+    private UUID userId;
 
-    @Field("period")
+    @Column(name = "period")
     private String period;
 
-    @Field("sent_date")
+    @Column(name = "sent_date")
     private Instant sentDate;
 
-    @Field("status")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
     private ReportStatus status;
 
-    @Field("created_at")
+    @Column(name = "created_at")
     private Instant createdAt;
 
-    @Field("updated_at")
+    @Column(name = "updated_at")
     private Instant updatedAt;
 
-    public ObjectId getId() { return id; }
-    public void setId(ObjectId id) { this.id = id; }
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
-    public ObjectId getUserId() { return userId; }
-    public void setUserId(ObjectId userId) { this.userId = userId; }
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
 
     public String getPeriod() { return period; }
     public void setPeriod(String period) { this.period = period; }

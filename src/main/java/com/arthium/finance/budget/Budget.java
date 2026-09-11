@@ -1,34 +1,41 @@
 package com.arthium.finance.budget;
 
-import org.bson.types.ObjectId;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.UUID;
 
-@Document(collection = "budgets")
+@Entity
+@Table(name = "budgets")
 public class Budget {
 
     @Id
-    private ObjectId id;
+    @GeneratedValue
+    private UUID id;
 
-    @Field("user_id")
-    private ObjectId userId;
+    @Column(name = "user_id")
+    private UUID userId;
 
-    @Field("category")
+    @Column(name = "category")
     private String category;
 
-    @Field("limit_amount")
+    @Column(name = "limit_amount")
     private long limitAmount;
 
-    @Field("period")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "period")
     private BudgetPeriod period = BudgetPeriod.MONTHLY;
 
-    @Field("alert_threshold")
+    @Column(name = "alert_threshold")
     private double alertThreshold = 0.8;
 
-    @Field("is_active")
+    @Column(name = "is_active")
     private boolean active = true;
 
     /**
@@ -36,23 +43,23 @@ public class Budget {
      * ("YYYY-MM" key plus "warning" | "exceeded"), so the daily job does not
      * re-send the same alert every morning.
      */
-    @Field("last_alerted_period")
+    @Column(name = "last_alerted_period")
     private String lastAlertedPeriod;
 
-    @Field("last_alerted_level")
+    @Column(name = "last_alerted_level")
     private String lastAlertedLevel;
 
-    @Field("created_at")
+    @Column(name = "created_at")
     private Instant createdAt;
 
-    @Field("updated_at")
+    @Column(name = "updated_at")
     private Instant updatedAt;
 
-    public ObjectId getId() { return id; }
-    public void setId(ObjectId id) { this.id = id; }
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
-    public ObjectId getUserId() { return userId; }
-    public void setUserId(ObjectId userId) { this.userId = userId; }
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }

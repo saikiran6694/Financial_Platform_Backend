@@ -42,7 +42,7 @@ public class JobLoader implements ApplicationRunner {
                 continue;
             }
 
-            String userId = schedule.getUserId().toHexString();
+            String userId = schedule.getUserId().toString();
             String cronExpression = schedule.getScheduledTime();
             String timezone = schedule.getTimezone() != null && !schedule.getTimezone().isBlank()
                     ? schedule.getTimezone()

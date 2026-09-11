@@ -6,16 +6,15 @@ import com.arthium.finance.budget.BudgetSpendCalculator;
 import com.arthium.finance.budget.BudgetStatus;
 import com.arthium.finance.common.DateUtils;
 import com.arthium.finance.common.MoneyUtils;
-import com.arthium.finance.common.Values;
+import com.arthium.finance.transaction.CategoryTotal;
+import com.arthium.finance.transaction.SummaryTotals;
 import com.arthium.finance.transaction.Transaction;
+import com.arthium.finance.transaction.TransactionRepository;
+import com.arthium.finance.transaction.TransactionSpecifications;
 import com.arthium.finance.transaction.TransactionType;
-import com.mongodb.client.MongoCollection;
-import org.bson.Document;
-import org.bson.types.ObjectId;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -23,24 +22,24 @@ import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 
 @Service
 public class ChatQueryService {
 
-    private final MongoTemplate mongoTemplate;
+    private final TransactionRepository transactionRepository;
     private final BudgetRepository budgetRepository;
     private final BudgetSpendCalculator spendCalculator;
 
-    public ChatQueryService(MongoTemplate mongoTemplate,
+    public ChatQueryService(TransactionRepository transactionRepository,
                             BudgetRepository budgetRepository,
                             BudgetSpendCalculator spendCalculator) {
-        this.mongoTemplate = mongoTemplate;
+        this.transactionRepository = transactionRepository;
         this.budgetRepository = budgetRepository;
         this.spendCalculator = spendCalculator;
     }
@@ -87,19 +86,11 @@ public class ChatQueryService {
         Instant from = parseDate(fromDate);
         Instant to = parseDate(toDate);
 
-        List<Document> pipeline = List.of(
-                new Document("$match", match(userId, from, to, null)),
-                new Document("$group", new Document("_id", null)
-                        .append("total_income", sumWhenType(TransactionType.INCOME))
-                        .append("total_expense", sumWhenType(TransactionType.EXPENSE))
-                        .append("count", new Document("$sum", 1)))
-        );
+        SummaryTotals result = transactionRepository.sumTotals(UUID.fromString(userId), from, to);
 
-        Document result = transactions().aggregate(pipeline).first();
-
-        long income = result == null ? 0 : Values.asLong(result.get("total_income"));
-        long expense = result == null ? 0 : Values.asLong(result.get("total_expense"));
-        long count = result == null ? 0 : Values.asLong(result.get("count"));
+        long income = result.getTotalIncome();
+        long expense = result.getTotalExpense();
+        long count = result.getTransactionCount();
         long balance = income - expense;
 
         Map<String, Object> period = new LinkedHashMap<>();
@@ -130,23 +121,16 @@ public class ChatQueryService {
         Instant to = parseDate(toDate);
         int cappedLimit = Math.max(1, Math.min(limit, 50));
 
-        List<Criteria> conditions = new ArrayList<>();
-        conditions.add(Criteria.where("user_id").is(new ObjectId(userId)));
+        TransactionType typeFilter = (type != null && !type.isBlank())
+                ? TransactionType.valueOf(type.toUpperCase(Locale.ENGLISH))
+                : null;
 
-        if (from != null && to != null) {
-            conditions.add(Criteria.where("date").gte(from).lte(to));
-        }
-        if (type != null && !type.isBlank()) {
-            conditions.add(Criteria.where("type").is(type.toUpperCase(Locale.ENGLISH)));
-        }
-        if (category != null && !category.isBlank()) {
-            conditions.add(Criteria.where("category").regex(category, "i"));
-        }
-        if (keyword != null && !keyword.isBlank()) {
-            conditions.add(new Criteria().orOperator(
-                    Criteria.where("title").regex(keyword, "i"),
-                    Criteria.where("category").regex(keyword, "i")));
-        }
+        Specification<Transaction> spec = TransactionSpecifications.combine(
+                TransactionSpecifications.userIdEquals(UUID.fromString(userId)),
+                TransactionSpecifications.dateBetween(from, to),
+                TransactionSpecifications.typeEquals(typeFilter),
+                TransactionSpecifications.categoryContainsIgnoreCase(category),
+                TransactionSpecifications.titleOrCategoryContainsIgnoreCase(keyword));
 
         Sort sort = switch (sortBy == null ? "date_desc" : sortBy) {
             case "amount_desc" -> Sort.by(Sort.Direction.DESC, "amount");
@@ -155,14 +139,10 @@ public class ChatQueryService {
             default -> Sort.by(Sort.Direction.DESC, "date");
         };
 
-        Query query = new Query(new Criteria().andOperator(conditions.toArray(new Criteria[0])))
-                .with(sort)
-                .limit(cappedLimit);
-
         List<Map<String, Object>> results = new ArrayList<>();
-        for (Transaction tx : mongoTemplate.find(query, Transaction.class)) {
+        for (Transaction tx : transactionRepository.findAll(spec, PageRequest.of(0, cappedLimit, sort))) {
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", tx.getId() != null ? tx.getId().toHexString() : null);
+            item.put("id", tx.getId() != null ? tx.getId().toString() : null);
             item.put("title", tx.getTitle());
             item.put("amount", MoneyUtils.toDollars(tx.getAmount()));
             item.put("type", tx.getType() != null ? tx.getType().name() : null);
@@ -183,30 +163,20 @@ public class ChatQueryService {
         Instant to = parseDate(toDate);
         int cappedLimit = Math.max(1, Math.min(limit, 20));
 
-        List<Document> pipeline = List.of(
-                new Document("$match", match(userId, from, to, TransactionType.EXPENSE)),
-                new Document("$group", new Document("_id", "$category")
-                        .append("total", new Document("$sum", new Document("$abs", "$amount")))
-                        .append("count", new Document("$sum", 1))),
-                new Document("$sort", new Document("total", -1)),
-                new Document("$limit", cappedLimit)
-        );
+        List<CategoryTotal> rows = transactionRepository.sumByCategory(
+                UUID.fromString(userId), TransactionType.EXPENSE.name(), from, to)
+                .stream().limit(cappedLimit).toList();
 
-        List<Document> rows = new ArrayList<>();
-        for (Document row : transactions().aggregate(pipeline)) {
-            rows.add(row);
-        }
-
-        long grandTotal = rows.stream().mapToLong(row -> Values.asLong(row.get("total"))).sum();
+        long grandTotal = rows.stream().mapToLong(CategoryTotal::getTotal).sum();
 
         List<Map<String, Object>> categories = new ArrayList<>();
-        for (Document row : rows) {
-            long total = Values.asLong(row.get("total"));
+        for (CategoryTotal row : rows) {
+            long total = row.getTotal();
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("category", Values.asString(row.get("_id")));
+            item.put("category", row.getCategory());
             item.put("amount", MoneyUtils.toDollars(total));
             item.put("percentage", grandTotal > 0 ? MoneyUtils.round((total * 100.0) / grandTotal, 1) : 0);
-            item.put("transaction_count", Values.asLong(row.get("count")));
+            item.put("transaction_count", row.getCount());
             categories.add(item);
         }
 
@@ -237,29 +207,20 @@ public class ChatQueryService {
         }
 
         String format = switch (granularity == null ? "month" : granularity) {
-            case "day" -> "%Y-%m-%d";
-            case "week" -> "%Y-W%V";
-            default -> "%Y-%m";
+            case "day" -> "YYYY-MM-DD";
+            case "week" -> "IYYY-\"W\"IW";
+            default -> "YYYY-MM";
         };
 
-        List<Document> pipeline = List.of(
-                new Document("$match", match(userId, from, to, null)),
-                new Document("$group", new Document("_id",
-                        new Document("$dateToString", new Document("format", format).append("date", "$date")))
-                        .append("income", sumWhenType(TransactionType.INCOME))
-                        .append("expenses", sumWhenType(TransactionType.EXPENSE))),
-                new Document("$sort", new Document("_id", 1))
-        );
-
         List<Map<String, Object>> series = new ArrayList<>();
-        for (Document row : transactions().aggregate(pipeline)) {
+        for (var row : transactionRepository.sumByPeriod(UUID.fromString(userId), from, to, format)) {
             Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("period", Values.asString(row.get("_id")));
+            entry.put("period", row.getPeriod());
             if (includeIncome) {
-                entry.put("income", MoneyUtils.toDollars(Values.asLong(row.get("income"))));
+                entry.put("income", MoneyUtils.toDollars(row.getIncome()));
             }
             if (includeExpenses) {
-                entry.put("expenses", MoneyUtils.toDollars(Values.asLong(row.get("expenses"))));
+                entry.put("expenses", MoneyUtils.toDollars(row.getExpenses()));
             }
             series.add(entry);
         }
@@ -269,20 +230,19 @@ public class ChatQueryService {
     // ── query_recurring ──────────────────────────────────────────────────────
 
     public Map<String, Object> queryRecurring(String userId, String type) {
-        List<Criteria> conditions = new ArrayList<>();
-        conditions.add(Criteria.where("user_id").is(new ObjectId(userId)));
-        conditions.add(Criteria.where("is_recurring").is(true));
-        if (type != null && !type.isBlank()) {
-            conditions.add(Criteria.where("type").is(type.toUpperCase(Locale.ENGLISH)));
-        }
+        TransactionType typeFilter = (type != null && !type.isBlank())
+                ? TransactionType.valueOf(type.toUpperCase(Locale.ENGLISH))
+                : null;
 
-        Query query = new Query(new Criteria().andOperator(conditions.toArray(new Criteria[0])))
-                .with(Sort.by(Sort.Direction.DESC, "amount"));
+        Specification<Transaction> spec = TransactionSpecifications.combine(
+                TransactionSpecifications.userIdEquals(UUID.fromString(userId)),
+                TransactionSpecifications.recurringEquals(true),
+                TransactionSpecifications.typeEquals(typeFilter));
 
         List<Map<String, Object>> items = new ArrayList<>();
         long total = 0;
 
-        for (Transaction tx : mongoTemplate.find(query, Transaction.class)) {
+        for (Transaction tx : transactionRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "amount"))) {
             total += tx.getAmount();
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("title", tx.getTitle());
@@ -342,7 +302,7 @@ public class ChatQueryService {
         ZonedDateTime now = spendCalculator.nowInUserZone(userId);
         String periodLabel = now.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH));
 
-        List<Budget> budgets = budgetRepository.findByUserIdAndActiveTrue(new ObjectId(userId));
+        List<Budget> budgets = budgetRepository.findByUserIdAndActiveTrue(UUID.fromString(userId));
 
         if (category != null && !category.isBlank()) {
             budgets = budgets.stream()
@@ -401,29 +361,6 @@ public class ChatQueryService {
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
-
-    private MongoCollection<Document> transactions() {
-        return mongoTemplate.getCollection("transactions");
-    }
-
-    private static Document match(String userId, Instant from, Instant to, TransactionType type) {
-        Document match = new Document("user_id", new ObjectId(userId));
-        if (type != null) {
-            match.append("type", type.name());
-        }
-        if (from != null && to != null) {
-            match.append("date", new Document("$gte", Date.from(from)).append("$lte", Date.from(to)));
-        }
-        return match;
-    }
-
-    private static Document sumWhenType(TransactionType type) {
-        return new Document("$sum", new Document("$cond", List.of(
-                new Document("$eq", List.of("$type", type.name())),
-                new Document("$abs", "$amount"),
-                0
-        )));
-    }
 
     private static double percentChange(double previous, double current) {
         if (previous == 0) {

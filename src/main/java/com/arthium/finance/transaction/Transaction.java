@@ -1,71 +1,81 @@
 package com.arthium.finance.transaction;
 
-import org.bson.types.ObjectId;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.UUID;
 
-@Document(collection = "transactions")
+@Entity
+@Table(name = "transactions")
 public class Transaction {
 
     @Id
-    private ObjectId id;
+    @GeneratedValue
+    private UUID id;
 
-    @Field("user_id")
-    private ObjectId userId;
+    @Column(name = "user_id")
+    private UUID userId;
 
-    @Field("title")
+    @Column(name = "title")
     private String title;
 
-    @Field("type")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type")
     private TransactionType type;
 
-    @Field("amount")
+    @Column(name = "amount")
     private long amount;
 
-    @Field("category")
+    @Column(name = "category")
     private String category;
 
-    @Field("receipt_url")
+    @Column(name = "receipt_url")
     private String receiptUrl;
 
-    @Field("recurring_interval")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "recurring_interval")
     private RecurringInterval recurringInterval;
 
-    @Field("next_recurring_date")
+    @Column(name = "next_recurring_date")
     private Instant nextRecurringDate;
 
-    @Field("last_processed")
+    @Column(name = "last_processed")
     private Instant lastProcessed;
 
-    @Field("is_recurring")
+    @Column(name = "is_recurring")
     private boolean recurring;
 
-    @Field("description")
+    @Column(name = "description")
     private String description;
 
-    @Field("date")
+    @Column(name = "date")
     private Instant date;
 
-    @Field("status")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
     private TransactionStatus status = TransactionStatus.COMPLETED;
 
-    @Field("payment_method")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method")
     private PaymentMethod paymentMethod = PaymentMethod.CASH;
 
-    @Field("created_at")
+    @Column(name = "created_at")
     private Instant createdAt;
 
-    @Field("updated_at")
+    @Column(name = "updated_at")
     private Instant updatedAt;
 
-    public ObjectId getId() { return id; }
-    public void setId(ObjectId id) { this.id = id; }
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
-    public ObjectId getUserId() { return userId; }
-    public void setUserId(ObjectId userId) { this.userId = userId; }
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }

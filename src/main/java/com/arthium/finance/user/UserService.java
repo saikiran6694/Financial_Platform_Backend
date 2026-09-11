@@ -1,13 +1,14 @@
 package com.arthium.finance.user;
 
 import com.arthium.finance.common.ApiException;
+import com.arthium.finance.common.Ids;
 import com.arthium.finance.storage.CloudinaryService;
-import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.UUID;
 
 @Service
 public class UserService {
@@ -21,10 +22,10 @@ public class UserService {
     }
 
     public User getById(String userId) {
-        if (!ObjectId.isValid(userId)) {
+        if (!Ids.isValid(userId)) {
             throw ApiException.notFound("User not found");
         }
-        return userRepository.findById(new ObjectId(userId))
+        return userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> ApiException.notFound("User not found"));
     }
 

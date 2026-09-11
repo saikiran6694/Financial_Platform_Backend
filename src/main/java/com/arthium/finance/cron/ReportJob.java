@@ -6,37 +6,35 @@ import com.arthium.finance.mail.ReportMailer;
 import com.arthium.finance.report.Report;
 import com.arthium.finance.report.ReportService;
 import com.arthium.finance.report.ReportSettings;
+import com.arthium.finance.report.ReportSettingsRepository;
 import com.arthium.finance.report.ReportStatus;
 import com.arthium.finance.report.dto.GeneratedReport;
 import com.arthium.finance.user.User;
 import com.arthium.finance.user.UserRepository;
-import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 public class ReportJob implements UserJob {
 
     private static final Logger log = LoggerFactory.getLogger(ReportJob.class);
 
-    private final MongoTemplate mongoTemplate;
+    private final ReportSettingsRepository reportSettingsRepository;
     private final UserRepository userRepository;
     private final ReportService reportService;
     private final ReportMailer reportMailer;
 
-    public ReportJob(MongoTemplate mongoTemplate,
+    public ReportJob(ReportSettingsRepository reportSettingsRepository,
                      UserRepository userRepository,
                      ReportService reportService,
                      ReportMailer reportMailer) {
-        this.mongoTemplate = mongoTemplate;
+        this.reportSettingsRepository = reportSettingsRepository;
         this.userRepository = userRepository;
         this.reportService = reportService;
         this.reportMailer = reportMailer;
@@ -57,18 +55,16 @@ public class ReportJob implements UserJob {
         log.info("Running report job for user: {}", userId);
 
         try {
-            ReportSettings settings = mongoTemplate.findOne(
-                    new Query(Criteria.where("user_id").is(new ObjectId(userId))
-                            .and("is_enabled").is(true)
-                            .and("next_report_date").lte(now)),
-                    ReportSettings.class);
+            Optional<ReportSettings> dueSettings = reportSettingsRepository
+                    .findByUserIdAndEnabledTrueAndNextReportDateLessThanEqual(UUID.fromString(userId), now);
 
-            if (settings == null) {
+            if (dueSettings.isEmpty()) {
                 log.info("No report due for user {}", userId);
                 return;
             }
+            ReportSettings settings = dueSettings.get();
 
-            Optional<User> user = userRepository.findById(new ObjectId(userId));
+            Optional<User> user = userRepository.findById(UUID.fromString(userId));
             if (user.isEmpty()) {
                 log.warn("User not found: {}", userId);
                 return;
@@ -98,7 +94,7 @@ public class ReportJob implements UserJob {
             }
 
             Report record = new Report();
-            record.setUserId(new ObjectId(userId));
+            record.setUserId(UUID.fromString(userId));
             record.setSentDate(now);
             record.setCreatedAt(now);
             record.setUpdatedAt(now);

@@ -1,11 +1,12 @@
 package com.arthium.finance.report;
 
-import org.bson.types.ObjectId;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ReportRepository extends MongoRepository<Report, ObjectId> {
+import java.util.UUID;
 
-    Page<Report> findByUserId(ObjectId userId, Pageable pageable);
+public interface ReportRepository extends JpaRepository<Report, UUID> {
+
+    Page<Report> findByUserId(UUID userId, Pageable pageable);
 }

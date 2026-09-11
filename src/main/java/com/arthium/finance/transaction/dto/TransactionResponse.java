@@ -31,8 +31,8 @@ public record TransactionResponse(
 ) {
     public static TransactionResponse from(Transaction tx) {
         return new TransactionResponse(
-                tx.getId() != null ? tx.getId().toHexString() : null,
-                tx.getUserId() != null ? tx.getUserId().toHexString() : null,
+                tx.getId() != null ? tx.getId().toString() : null,
+                tx.getUserId() != null ? tx.getUserId().toString() : null,
                 tx.getTitle(),
                 tx.getType(),
                 MoneyUtils.toDollars(tx.getAmount()),

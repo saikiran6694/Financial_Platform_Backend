@@ -1,10 +1,11 @@
 package com.arthium.finance.report;
 
+import com.arthium.finance.common.Ids;
 import com.arthium.finance.config.AppProperties;
-import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.UUID;
 
 
 @Service
@@ -34,9 +35,9 @@ public class UserScheduleService {
     }
 
     public Optional<ReportSchedule> findByUserId(String userId) {
-        if (!ObjectId.isValid(userId)) {
+        if (!Ids.isValid(userId)) {
             return Optional.empty();
         }
-        return scheduleRepository.findByUserId(new ObjectId(userId));
+        return scheduleRepository.findByUserId(UUID.fromString(userId));
     }
 }

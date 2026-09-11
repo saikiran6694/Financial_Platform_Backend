@@ -10,7 +10,6 @@ import com.arthium.finance.mail.BudgetAlert;
 import com.arthium.finance.mail.BudgetAlertMailer;
 import com.arthium.finance.user.User;
 import com.arthium.finance.user.UserRepository;
-import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -21,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 public class BudgetJob implements UserJob {
@@ -61,14 +61,14 @@ public class BudgetJob implements UserJob {
         log.info("Running budget check for user: {}", userId);
 
         try {
-            List<Budget> budgets = budgetRepository.findByUserIdAndActiveTrue(new ObjectId(userId));
+            List<Budget> budgets = budgetRepository.findByUserIdAndActiveTrue(UUID.fromString(userId));
 
             if (budgets.isEmpty()) {
                 log.info("No active budgets for user {}", userId);
                 return;
             }
 
-            Optional<User> user = userRepository.findById(new ObjectId(userId));
+            Optional<User> user = userRepository.findById(UUID.fromString(userId));
             if (user.isEmpty()) {
                 log.warn("User not found: {}", userId);
                 return;

@@ -14,7 +14,7 @@ public record ReportSettingLoginResponse(
             return null;
         }
         return new ReportSettingLoginResponse(
-                settings.getId() != null ? settings.getId().toHexString() : null,
+                settings.getId() != null ? settings.getId().toString() : null,
                 settings.getFrequency(),
                 settings.isEnabled()
         );

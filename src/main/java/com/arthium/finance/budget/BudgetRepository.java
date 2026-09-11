@@ -1,16 +1,18 @@
 package com.arthium.finance.budget;
 
-import org.bson.types.ObjectId;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
-public interface BudgetRepository extends MongoRepository<Budget, ObjectId> {
+public interface BudgetRepository extends JpaRepository<Budget, UUID> {
 
-    List<Budget> findByUserIdOrderByCreatedAtDesc(ObjectId userId);
+    List<Budget> findByUserIdOrderByCreatedAtDesc(UUID userId);
 
-    List<Budget> findByUserIdAndActiveTrue(ObjectId userId);
+    List<Budget> findByUserIdAndActiveTrue(UUID userId);
 
-    Optional<Budget> findByIdAndUserId(ObjectId id, ObjectId userId);
+    Optional<Budget> findByIdAndUserId(UUID id, UUID userId);
+
+    boolean existsByUserIdAndCategoryIgnoreCase(UUID userId, String category);
 }

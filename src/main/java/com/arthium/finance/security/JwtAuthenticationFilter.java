@@ -1,12 +1,12 @@
 package com.arthium.finance.security;
 
+import com.arthium.finance.common.Ids;
 import com.arthium.finance.user.User;
 import com.arthium.finance.user.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.bson.types.ObjectId;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -17,6 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -63,9 +64,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private Optional<User> findUser(String userId) {
-        if (!ObjectId.isValid(userId)) {
+        if (!Ids.isValid(userId)) {
             return Optional.empty();
         }
-        return userRepository.findById(new ObjectId(userId));
+        return userRepository.findById(UUID.fromString(userId));
     }
 }

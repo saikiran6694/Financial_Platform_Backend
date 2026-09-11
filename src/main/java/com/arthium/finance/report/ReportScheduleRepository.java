@@ -1,11 +1,11 @@
 package com.arthium.finance.report;
 
-import org.bson.types.ObjectId;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
+import java.util.UUID;
 
-public interface ReportScheduleRepository extends MongoRepository<ReportSchedule, ObjectId> {
+public interface ReportScheduleRepository extends JpaRepository<ReportSchedule, UUID> {
 
-    Optional<ReportSchedule> findByUserId(ObjectId userId);
+    Optional<ReportSchedule> findByUserId(UUID userId);
 }
