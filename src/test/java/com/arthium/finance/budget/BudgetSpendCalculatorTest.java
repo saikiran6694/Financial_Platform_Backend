@@ -2,41 +2,48 @@ package com.arthium.finance.budget;
 
 import com.arthium.finance.budget.dto.BudgetItem;
 import com.arthium.finance.report.UserScheduleService;
-import com.mongodb.client.AggregateIterable;
-import com.mongodb.client.MongoCollection;
-import org.bson.Document;
-import org.bson.types.ObjectId;
+import com.arthium.finance.transaction.CategoryTotal;
+import com.arthium.finance.transaction.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.mongodb.core.MongoTemplate;
 
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class BudgetSpendCalculatorTest {
 
     @Mock
-    private MongoTemplate mongoTemplate;
+    private TransactionRepository transactionRepository;
     @Mock
     private UserScheduleService userScheduleService;
 
     private BudgetSpendCalculator calculator;
-    private final String userId = new ObjectId().toHexString();
+    private final String userId = UUID.randomUUID().toString();
 
     @BeforeEach
     void setUp() {
-        calculator = new BudgetSpendCalculator(mongoTemplate, userScheduleService);
+        calculator = new BudgetSpendCalculator(transactionRepository, userScheduleService);
+    }
+
+    private record CategoryTotalRow(String category, long total, long count) implements CategoryTotal {
+        public String getCategory() { return category; }
+        public Long getTotal() { return total; }
+        public Long getCount() { return count; }
     }
 
     // ── statusFor ────────────────────────────────────────────────────────────
@@ -80,7 +87,7 @@ class BudgetSpendCalculatorTest {
     @Test
     void buildItem_zeroLimit_avoidsDivideByZeroAndReturnsZeroPercentage() {
         Budget budget = new Budget();
-        budget.setId(new ObjectId());
+        budget.setId(UUID.randomUUID());
         budget.setCategory("Food");
         budget.setLimitAmount(0L);
         budget.setAlertThreshold(0.8);
@@ -95,7 +102,7 @@ class BudgetSpendCalculatorTest {
     @Test
     void buildItem_normalCase_computesPercentageAndStatus() {
         Budget budget = new Budget();
-        budget.setId(new ObjectId());
+        budget.setId(UUID.randomUUID());
         budget.setCategory("Food");
         budget.setLimitAmount(10000L);
         budget.setAlertThreshold(0.8);
@@ -111,7 +118,7 @@ class BudgetSpendCalculatorTest {
     @Test
     void buildItem_nullPeriodOnEntity_defaultsToMonthly() {
         Budget budget = new Budget();
-        budget.setId(new ObjectId());
+        budget.setId(UUID.randomUUID());
         budget.setCategory("Food");
         budget.setLimitAmount(1000L);
         budget.setAlertThreshold(0.8);
@@ -144,20 +151,10 @@ class BudgetSpendCalculatorTest {
     // ── currentMonthSpendByCategory ──────────────────────────────────────────
 
     @Test
-    @SuppressWarnings("unchecked")
     void currentMonthSpendByCategory_aggregatesSpendGroupedByLowercasedCategory() {
         when(userScheduleService.getUserTimezone(userId)).thenReturn("UTC");
-
-        MongoCollection<Document> collection = org.mockito.Mockito.mock(MongoCollection.class);
-        AggregateIterable<Document> aggregateIterable = org.mockito.Mockito.mock(AggregateIterable.class);
-        com.mongodb.client.MongoCursor<Document> cursor = org.mockito.Mockito.mock(com.mongodb.client.MongoCursor.class);
-        Document row = new Document("_id", "food").append("spent", 5000L);
-        when(cursor.hasNext()).thenReturn(true, false);
-        when(cursor.next()).thenReturn(row);
-
-        when(mongoTemplate.getCollection("transactions")).thenReturn(collection);
-        when(collection.aggregate(anyList())).thenReturn(aggregateIterable);
-        when(aggregateIterable.iterator()).thenReturn(cursor);
+        when(transactionRepository.sumByLowerCategory(eq(UUID.fromString(userId)), anyString(), any(Instant.class), any(Instant.class)))
+                .thenReturn(List.of(new CategoryTotalRow("food", 5000L, 3L)));
 
         Map<String, Long> result = calculator.currentMonthSpendByCategory(userId);
 
@@ -165,18 +162,10 @@ class BudgetSpendCalculatorTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     void currentMonthSpendByCategory_noExpenses_returnsEmptyMap() {
         when(userScheduleService.getUserTimezone(userId)).thenReturn("UTC");
-
-        MongoCollection<Document> collection = org.mockito.Mockito.mock(MongoCollection.class);
-        AggregateIterable<Document> aggregateIterable = org.mockito.Mockito.mock(AggregateIterable.class);
-        com.mongodb.client.MongoCursor<Document> cursor = org.mockito.Mockito.mock(com.mongodb.client.MongoCursor.class);
-        when(cursor.hasNext()).thenReturn(false);
-
-        when(mongoTemplate.getCollection("transactions")).thenReturn(collection);
-        when(collection.aggregate(anyList())).thenReturn(aggregateIterable);
-        when(aggregateIterable.iterator()).thenReturn(cursor);
+        when(transactionRepository.sumByLowerCategory(eq(UUID.fromString(userId)), anyString(), any(Instant.class), any(Instant.class)))
+                .thenReturn(List.of());
 
         Map<String, Long> result = calculator.currentMonthSpendByCategory(userId);
 

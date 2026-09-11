@@ -5,20 +5,17 @@ import com.arthium.finance.budget.dto.BudgetItem;
 import com.arthium.finance.budget.dto.BudgetListResponse;
 import com.arthium.finance.budget.dto.BudgetUpdateRequest;
 import com.arthium.finance.common.ApiException;
+import com.arthium.finance.common.Ids;
 import com.arthium.finance.common.MoneyUtils;
 import com.arthium.finance.cron.DynamicJobScheduler;
 import com.arthium.finance.report.UserScheduleService;
-import org.bson.types.ObjectId;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
+import java.util.UUID;
 
 @Service
 public class BudgetService {
@@ -27,29 +24,23 @@ public class BudgetService {
 
     private final BudgetRepository budgetRepository;
     private final BudgetSpendCalculator spendCalculator;
-    private final MongoTemplate mongoTemplate;
     private final DynamicJobScheduler jobScheduler;
     private final UserScheduleService userScheduleService;
 
     public BudgetService(BudgetRepository budgetRepository,
                          BudgetSpendCalculator spendCalculator,
-                         MongoTemplate mongoTemplate,
                          DynamicJobScheduler jobScheduler,
                          UserScheduleService userScheduleService) {
         this.budgetRepository = budgetRepository;
         this.spendCalculator = spendCalculator;
-        this.mongoTemplate = mongoTemplate;
         this.jobScheduler = jobScheduler;
         this.userScheduleService = userScheduleService;
     }
 
     public BudgetItem create(BudgetCreateRequest request, String userId) {
-        ObjectId ownerId = new ObjectId(userId);
+        UUID ownerId = UUID.fromString(userId);
 
-        boolean exists = mongoTemplate.exists(
-                new Query(Criteria.where("user_id").is(ownerId)
-                        .and("category").regex("^" + Pattern.quote(request.category()) + "$", "i")),
-                Budget.class);
+        boolean exists = budgetRepository.existsByUserIdAndCategoryIgnoreCase(ownerId, request.category());
 
         if (exists) {
             throw ApiException.conflict(
@@ -79,7 +70,7 @@ public class BudgetService {
     }
 
     public BudgetListResponse getAll(String userId) {
-        List<Budget> budgets = budgetRepository.findByUserIdOrderByCreatedAtDesc(new ObjectId(userId));
+        List<Budget> budgets = budgetRepository.findByUserIdOrderByCreatedAtDesc(UUID.fromString(userId));
         Map<String, Long> spendMap = spendCalculator.currentMonthSpendByCategory(userId);
 
         List<BudgetItem> items = new ArrayList<>();
@@ -133,10 +124,10 @@ public class BudgetService {
     }
 
     private Budget findOwned(String budgetId, String userId) {
-        if (!ObjectId.isValid(budgetId)) {
+        if (!Ids.isValid(budgetId)) {
             throw ApiException.badRequest("Invalid budget id");
         }
-        return budgetRepository.findByIdAndUserId(new ObjectId(budgetId), new ObjectId(userId))
+        return budgetRepository.findByIdAndUserId(UUID.fromString(budgetId), UUID.fromString(userId))
                 .orElseThrow(() -> ApiException.notFound("Budget not found"));
     }
 

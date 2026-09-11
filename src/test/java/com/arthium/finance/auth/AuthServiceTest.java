@@ -12,7 +12,6 @@ import com.arthium.finance.report.ReportSettingsRepository;
 import com.arthium.finance.security.JwtService;
 import com.arthium.finance.user.User;
 import com.arthium.finance.user.UserRepository;
-import org.bson.types.ObjectId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -24,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -61,7 +61,7 @@ class AuthServiceTest {
 
     private static User userWithId(String email, String hashedPassword) {
         User user = new User();
-        user.setId(new ObjectId());
+        user.setId(UUID.randomUUID());
         user.setEmail(email);
         user.setPassword(hashedPassword);
         user.setName("Jane Doe");
@@ -91,7 +91,7 @@ class AuthServiceTest {
         when(passwordEncoder.encode("password123")).thenReturn("hashed");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User u = invocation.getArgument(0);
-            u.setId(new ObjectId());
+            u.setId(UUID.randomUUID());
             return u;
         });
 
@@ -110,7 +110,7 @@ class AuthServiceTest {
         when(passwordEncoder.encode(anyString())).thenReturn("hashed");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User u = invocation.getArgument(0);
-            u.setId(new ObjectId());
+            u.setId(UUID.randomUUID());
             return u;
         });
 
@@ -175,7 +175,7 @@ class AuthServiceTest {
     void login_success_withReportSettings_mapsSettingsIntoResponse() {
         User user = userWithId("jane@example.com", "hashed");
         ReportSettings settings = new ReportSettings();
-        settings.setId(new ObjectId());
+        settings.setId(UUID.randomUUID());
         settings.setFrequency(ReportFrequency.MONTHLY);
         settings.setEnabled(true);
 
@@ -205,8 +205,8 @@ class AuthServiceTest {
     }
 
     @Test
-    void refreshToken_subjectNotAValidObjectId_throwsUserNotFound() {
-        when(jwtService.verifyToken("token")).thenReturn(Optional.of("not-an-object-id"));
+    void refreshToken_subjectNotAValidUuid_throwsUserNotFound() {
+        when(jwtService.verifyToken("token")).thenReturn(Optional.of("not-a-uuid"));
 
         assertThatThrownBy(() -> authService.refreshToken("token"))
                 .isInstanceOf(ApiException.class)
@@ -215,8 +215,8 @@ class AuthServiceTest {
 
     @Test
     void refreshToken_userNoLongerExists_throwsUserNotFound() {
-        ObjectId id = new ObjectId();
-        when(jwtService.verifyToken("token")).thenReturn(Optional.of(id.toHexString()));
+        UUID id = UUID.randomUUID();
+        when(jwtService.verifyToken("token")).thenReturn(Optional.of(id.toString()));
         when(userRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.refreshToken("token"))
@@ -226,12 +226,12 @@ class AuthServiceTest {
 
     @Test
     void refreshToken_success_returnsNewAccessTokenAndTtl() {
-        ObjectId id = new ObjectId();
+        UUID id = UUID.randomUUID();
         User user = userWithId("jane@example.com", "hashed");
         user.setId(id);
-        when(jwtService.verifyToken("token")).thenReturn(Optional.of(id.toHexString()));
+        when(jwtService.verifyToken("token")).thenReturn(Optional.of(id.toString()));
         when(userRepository.findById(id)).thenReturn(Optional.of(user));
-        when(jwtService.createAccessToken(id.toHexString())).thenReturn("new-access-token");
+        when(jwtService.createAccessToken(id.toString())).thenReturn("new-access-token");
         when(jwtService.getAccessTokenTtl()).thenReturn(Duration.ofMinutes(15));
 
         RefreshTokenResponse response = authService.refreshToken("token");
@@ -274,7 +274,7 @@ class AuthServiceTest {
                 .thenReturn(Optional.empty());
         when(otpRepository.save(any(ForgotPasswordOtp.class))).thenAnswer(invocation -> {
             ForgotPasswordOtp otp = invocation.getArgument(0);
-            otp.setId(new ObjectId());
+            otp.setId(UUID.randomUUID());
             return otp;
         });
 
@@ -319,7 +319,7 @@ class AuthServiceTest {
     @Test
     void verifyForgotPasswordOtp_success_marksVerifiedAndReturnsTrue() {
         ForgotPasswordOtp record = new ForgotPasswordOtp();
-        record.setId(new ObjectId());
+        record.setId(UUID.randomUUID());
         record.setVerified(false);
         when(otpRepository.findFirstByEmailAndOtpAndExpiresAtGreaterThanAndVerified(
                 eq("jane@example.com"), eq("123456"), any(), eq(false)))

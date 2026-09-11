@@ -1,44 +1,51 @@
 package com.arthium.finance.report;
 
-import org.bson.types.ObjectId;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.UUID;
 
-@Document(collection = "report_settings")
+@Entity
+@Table(name = "report_settings")
 public class ReportSettings {
 
     @Id
-    private ObjectId id;
+    @GeneratedValue
+    private UUID id;
 
-    @Field("user_id")
-    private ObjectId userId;
+    @Column(name = "user_id")
+    private UUID userId;
 
-    @Field("frequency")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "frequency")
     private ReportFrequency frequency = ReportFrequency.MONTHLY;
 
-    @Field("is_enabled")
+    @Column(name = "is_enabled")
     private boolean enabled;
 
-    @Field("next_report_date")
+    @Column(name = "next_report_date")
     private Instant nextReportDate;
 
-    @Field("last_sent_date")
+    @Column(name = "last_sent_date")
     private Instant lastSentDate;
 
-    @Field("created_at")
+    @Column(name = "created_at")
     private Instant createdAt;
 
-    @Field("updated_at")
+    @Column(name = "updated_at")
     private Instant updatedAt;
 
-    public ObjectId getId() { return id; }
-    public void setId(ObjectId id) { this.id = id; }
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
-    public ObjectId getUserId() { return userId; }
-    public void setUserId(ObjectId userId) { this.userId = userId; }
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
 
     public ReportFrequency getFrequency() { return frequency; }
     public void setFrequency(ReportFrequency frequency) { this.frequency = frequency; }

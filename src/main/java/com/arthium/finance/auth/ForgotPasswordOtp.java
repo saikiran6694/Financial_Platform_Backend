@@ -1,38 +1,42 @@
 package com.arthium.finance.auth;
 
-import org.bson.types.ObjectId;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.UUID;
 
-@Document(collection = "forgot_password")
+@Entity
+@Table(name = "forgot_password")
 public class ForgotPasswordOtp {
 
     @Id
-    private ObjectId id;
+    @GeneratedValue
+    private UUID id;
 
-    @Field("email")
+    @Column(name = "email")
     private String email;
 
-    @Field("otp")
+    @Column(name = "otp")
     private String otp;
 
-    @Field("expires_at")
+    @Column(name = "expires_at")
     private Instant expiresAt;
 
-    @Field("verified")
+    @Column(name = "verified")
     private boolean verified;
 
-    @Field("created_at")
+    @Column(name = "created_at")
     private Instant createdAt;
 
-    @Field("updated_at")
+    @Column(name = "updated_at")
     private Instant updatedAt;
 
-    public ObjectId getId() { return id; }
-    public void setId(ObjectId id) { this.id = id; }
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }

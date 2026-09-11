@@ -7,17 +7,28 @@ spring:
   config:
     import: "optional:file:./.env[.properties]"
 
-  # Java 25 virtual threads: every request (and every Mongo/HTTP call it makes)
+  # Java 25 virtual threads: every request (and every DB/HTTP call it makes)
   # runs on a virtual thread, which is the closest equivalent to the
   # async/run_in_threadpool model the FastAPI version used.
   threads:
     virtual:
       enabled: true
 
-  mongodb:
-    uri: ${MONGO_URI}
-    database: ${MONGO_DATABASE_NAME}
-    auto-index-creation: false
+  datasource:
+    url: ${POSTGRES_URI}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
 
   jackson:
     property-naming-strategy: SNAKE_CASE
@@ -74,5 +85,4 @@ logging:
   level:
     root: INFO
     com.arthium.finance: INFO
-    org.mongodb.driver: WARN
     org.springframework.web: INFO

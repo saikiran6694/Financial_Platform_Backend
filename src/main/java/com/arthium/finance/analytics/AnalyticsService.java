@@ -2,31 +2,30 @@ package com.arthium.finance.analytics;
 
 import com.arthium.finance.common.DateUtils;
 import com.arthium.finance.common.MoneyUtils;
-import com.arthium.finance.common.Values;
 import com.arthium.finance.report.DateRange;
+import com.arthium.finance.transaction.CategoryTotal;
+import com.arthium.finance.transaction.PeriodTotal;
+import com.arthium.finance.transaction.SummaryTotals;
+import com.arthium.finance.transaction.TransactionRepository;
 import com.arthium.finance.transaction.TransactionType;
-import com.mongodb.client.MongoCollection;
-import org.bson.Document;
-import org.bson.types.ObjectId;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class AnalyticsService {
 
-    private final MongoTemplate mongoTemplate;
+    private final TransactionRepository transactionRepository;
 
-    public AnalyticsService(MongoTemplate mongoTemplate) {
-        this.mongoTemplate = mongoTemplate;
+    public AnalyticsService(TransactionRepository transactionRepository) {
+        this.transactionRepository = transactionRepository;
     }
 
     // ── Summary ──────────────────────────────────────────────────────────────
@@ -97,29 +96,20 @@ public class AnalyticsService {
     public Map<String, Object> chart(String userId, DateRange preset, Instant customFrom, Instant customTo) {
         DateRangeResolver.Resolved range = DateRangeResolver.resolve(preset, customFrom, customTo);
 
-        List<Document> pipeline = new ArrayList<>();
-        pipeline.add(new Document("$match", matchFor(userId, range.from(), range.to(), null)));
-        pipeline.add(new Document("$group", new Document("_id",
-                new Document("$dateToString", new Document("format", "%Y-%m-%d").append("date", "$date")))
-                .append("income", sumWhenType(TransactionType.INCOME))
-                .append("expenses", sumWhenType(TransactionType.EXPENSE))
-                .append("income_count", countWhenType(TransactionType.INCOME))
-                .append("expense_count", countWhenType(TransactionType.EXPENSE))));
-        pipeline.add(new Document("$sort", new Document("_id", 1)));
-
         List<Map<String, Object>> chartData = new ArrayList<>();
         long totalIncomeCount = 0;
         long totalExpenseCount = 0;
 
-        for (Document row : transactions().aggregate(pipeline)) {
+        for (PeriodTotal row : transactionRepository.sumByPeriod(
+                UUID.fromString(userId), range.from(), range.to(), "YYYY-MM-DD")) {
             Map<String, Object> point = new LinkedHashMap<>();
-            point.put("date", Values.asString(row.get("_id")));
-            point.put("income", MoneyUtils.toDollars(Values.asLong(row.get("income"))));
-            point.put("expenses", MoneyUtils.toDollars(Values.asLong(row.get("expenses"))));
+            point.put("date", row.getPeriod());
+            point.put("income", MoneyUtils.toDollars(row.getIncome()));
+            point.put("expenses", MoneyUtils.toDollars(row.getExpenses()));
             chartData.add(point);
 
-            totalIncomeCount += Values.asLong(row.get("income_count"));
-            totalExpenseCount += Values.asLong(row.get("expense_count"));
+            totalIncomeCount += row.getIncomeCount();
+            totalExpenseCount += row.getExpenseCount();
         }
 
         Map<String, Object> stats = new LinkedHashMap<>();
@@ -139,17 +129,11 @@ public class AnalyticsService {
     public Map<String, Object> expenseBreakdown(String userId, DateRange preset, Instant customFrom, Instant customTo) {
         DateRangeResolver.Resolved range = DateRangeResolver.resolve(preset, customFrom, customTo);
 
-        List<Document> pipeline = List.of(
-                new Document("$match", matchFor(userId, range.from(), range.to(), TransactionType.EXPENSE)),
-                new Document("$group", new Document("_id", "$category")
-                        .append("value", new Document("$sum", new Document("$abs", "$amount")))),
-                new Document("$sort", new Document("value", -1))
-        );
-
         List<Map.Entry<String, Long>> categories = new ArrayList<>();
-        for (Document row : transactions().aggregate(pipeline)) {
-            String name = Values.asString(row.get("_id"));
-            categories.add(Map.entry(name == null ? "" : name, Values.asLong(row.get("value"))));
+        for (CategoryTotal row : transactionRepository.sumByCategory(
+                UUID.fromString(userId), TransactionType.EXPENSE.name(), range.from(), range.to())) {
+            String name = row.getCategory();
+            categories.add(Map.entry(name == null ? "" : name, row.getTotal()));
         }
         categories.sort(Comparator.comparingLong((Map.Entry<String, Long> e) -> e.getValue()).reversed());
 
@@ -187,55 +171,8 @@ public class AnalyticsService {
     }
 
     private Totals totalsFor(String userId, Instant fromDate, Instant toDate) {
-        List<Document> pipeline = List.of(
-                new Document("$match", matchFor(userId, fromDate, toDate, null)),
-                new Document("$group", new Document("_id", null)
-                        .append("total_income", sumWhenType(TransactionType.INCOME))
-                        .append("total_expense", sumWhenType(TransactionType.EXPENSE))
-                        .append("transaction_count", new Document("$sum", 1)))
-        );
-
-        Document result = transactions().aggregate(pipeline).first();
-        if (result == null) {
-            return new Totals(0, 0, 0);
-        }
-
-        return new Totals(
-                Values.asLong(result.get("total_income")),
-                Values.asLong(result.get("total_expense")),
-                Values.asLong(result.get("transaction_count"))
-        );
-    }
-
-    private MongoCollection<Document> transactions() {
-        return mongoTemplate.getCollection("transactions");
-    }
-
-    private static Document matchFor(String userId, Instant fromDate, Instant toDate, TransactionType type) {
-        Document match = new Document("user_id", new ObjectId(userId));
-        if (type != null) {
-            match.append("type", type.name());
-        }
-        if (fromDate != null && toDate != null) {
-            match.append("date", new Document("$gte", Date.from(fromDate)).append("$lte", Date.from(toDate)));
-        }
-        return match;
-    }
-
-    private static Document sumWhenType(TransactionType type) {
-        return new Document("$sum", new Document("$cond", List.of(
-                new Document("$eq", List.of("$type", type.name())),
-                new Document("$abs", "$amount"),
-                0
-        )));
-    }
-
-    private static Document countWhenType(TransactionType type) {
-        return new Document("$sum", new Document("$cond", List.of(
-                new Document("$eq", List.of("$type", type.name())),
-                1,
-                0
-        )));
+        SummaryTotals result = transactionRepository.sumTotals(UUID.fromString(userId), fromDate, toDate);
+        return new Totals(result.getTotalIncome(), result.getTotalExpense(), result.getTransactionCount());
     }
 
     private static Map<String, Object> presetOf(DateRangeResolver.Resolved range) {

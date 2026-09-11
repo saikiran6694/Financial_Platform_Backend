@@ -6,6 +6,7 @@ import com.arthium.finance.auth.dto.UserLoginRequest;
 import com.arthium.finance.auth.dto.UserLoginResponse;
 import com.arthium.finance.common.ApiException;
 import com.arthium.finance.common.DateUtils;
+import com.arthium.finance.common.Ids;
 import com.arthium.finance.mail.ForgotPasswordMailer;
 import com.arthium.finance.report.ReportFrequency;
 import com.arthium.finance.report.ReportSettings;
@@ -15,7 +16,6 @@ import com.arthium.finance.security.JwtService;
 import com.arthium.finance.user.User;
 import com.arthium.finance.user.UserRepository;
 import com.arthium.finance.user.dto.UserPrivateDto;
-import org.bson.types.ObjectId;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -123,7 +124,7 @@ public class AuthService {
         String userId = jwtService.verifyToken(refreshToken)
                 .orElseThrow(() -> ApiException.unauthorized("Invalid or expired refresh token"));
 
-        if (!ObjectId.isValid(userId) || userRepository.findById(new ObjectId(userId)).isEmpty()) {
+        if (!Ids.isValid(userId) || userRepository.findById(UUID.fromString(userId)).isEmpty()) {
             throw ApiException.unauthorized("User not found");
         }
 

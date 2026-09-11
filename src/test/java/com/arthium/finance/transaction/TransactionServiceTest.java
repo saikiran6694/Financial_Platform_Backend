@@ -10,15 +10,16 @@ import com.arthium.finance.transaction.dto.TransactionCreateRequest;
 import com.arthium.finance.transaction.dto.TransactionListResponse;
 import com.arthium.finance.transaction.dto.TransactionResponse;
 import com.arthium.finance.transaction.dto.TransactionUpdateRequest;
-import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.IOException;
@@ -26,6 +27,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -44,8 +46,6 @@ class TransactionServiceTest {
     @Mock
     private TransactionRepository transactionRepository;
     @Mock
-    private MongoTemplate mongoTemplate;
-    @Mock
     private CloudinaryService cloudinaryService;
     @Mock
     private GeminiService geminiService;
@@ -53,12 +53,12 @@ class TransactionServiceTest {
     private Json json;
 
     private TransactionService transactionService;
-    private final String userId = new ObjectId().toHexString();
+    private final String userId = UUID.randomUUID().toString();
 
     @BeforeEach
     void setUp() {
         transactionService = new TransactionService(
-                transactionRepository, mongoTemplate, cloudinaryService, geminiService, json);
+                transactionRepository, cloudinaryService, geminiService, json);
     }
 
     private static TransactionCreateRequest createRequest(Instant date, Boolean isRecurring, RecurringInterval interval) {
@@ -123,14 +123,14 @@ class TransactionServiceTest {
     @Test
     void bulkCreate_forcesEveryTransactionToBeNonRecurring() {
         ArgumentCaptor<List<Transaction>> captor = ArgumentCaptor.forClass(List.class);
-        when(transactionRepository.insert(anyList())).thenAnswer(inv -> inv.getArgument(0));
+        when(transactionRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
         List<TransactionCreateRequest> requests = List.of(
                 createRequest(Instant.now(), true, RecurringInterval.DAILY),
                 createRequest(Instant.now(), true, RecurringInterval.YEARLY));
         transactionService.bulkCreate(new BulkTransactionCreateRequest(requests), userId);
 
-        verify(transactionRepository).insert(captor.capture());
+        verify(transactionRepository).saveAll(captor.capture());
         assertThat(captor.getValue()).allSatisfy(tx -> {
             assertThat(tx.isRecurring()).isFalse();
             assertThat(tx.getRecurringInterval()).isNull();
@@ -144,7 +144,7 @@ class TransactionServiceTest {
                 createRequest(Instant.now(), false, null),
                 createRequest(Instant.now(), false, null),
                 createRequest(Instant.now(), false, null));
-        when(transactionRepository.insert(anyList())).thenAnswer(inv -> inv.getArgument(0));
+        when(transactionRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
         int inserted = transactionService.bulkCreate(new BulkTransactionCreateRequest(requests), userId);
 
@@ -252,8 +252,8 @@ class TransactionServiceTest {
 
     @Test
     void duplicate_transactionNotOwnedOrMissing_throwsNotFound() {
-        String txId = new ObjectId().toHexString();
-        when(transactionRepository.findByIdAndUserId(new ObjectId(txId), new ObjectId(userId)))
+        String txId = UUID.randomUUID().toString();
+        when(transactionRepository.findByIdAndUserId(UUID.fromString(txId), UUID.fromString(userId)))
                 .thenReturn(java.util.Optional.empty());
 
         assertThatThrownBy(() -> transactionService.duplicate(txId, userId))
@@ -263,16 +263,16 @@ class TransactionServiceTest {
 
     @Test
     void duplicate_success_prefixesTitleAndAppendsToDescription() {
-        String txId = new ObjectId().toHexString();
+        String txId = UUID.randomUUID().toString();
         Transaction source = new Transaction();
-        source.setUserId(new ObjectId(userId));
+        source.setUserId(UUID.fromString(userId));
         source.setTitle("Groceries");
         source.setDescription("Weekly shop");
         source.setRecurring(true);
         source.setRecurringInterval(RecurringInterval.WEEKLY);
         source.setNextRecurringDate(Instant.now());
         source.setLastProcessed(Instant.now().minus(1, ChronoUnit.DAYS));
-        when(transactionRepository.findByIdAndUserId(new ObjectId(txId), new ObjectId(userId)))
+        when(transactionRepository.findByIdAndUserId(UUID.fromString(txId), UUID.fromString(userId)))
                 .thenReturn(java.util.Optional.of(source));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -288,12 +288,12 @@ class TransactionServiceTest {
 
     @Test
     void duplicate_missingDescription_defaultsToDuplicatedTransaction() {
-        String txId = new ObjectId().toHexString();
+        String txId = UUID.randomUUID().toString();
         Transaction source = new Transaction();
-        source.setUserId(new ObjectId(userId));
+        source.setUserId(UUID.fromString(userId));
         source.setTitle("Groceries");
         source.setDescription(null);
-        when(transactionRepository.findByIdAndUserId(new ObjectId(txId), new ObjectId(userId)))
+        when(transactionRepository.findByIdAndUserId(UUID.fromString(txId), UUID.fromString(userId)))
                 .thenReturn(java.util.Optional.of(source));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -306,8 +306,8 @@ class TransactionServiceTest {
 
     @Test
     void update_transactionNotFound_throwsNotFound() {
-        String txId = new ObjectId().toHexString();
-        when(transactionRepository.findByIdAndUserId(new ObjectId(txId), new ObjectId(userId)))
+        String txId = UUID.randomUUID().toString();
+        when(transactionRepository.findByIdAndUserId(UUID.fromString(txId), UUID.fromString(userId)))
                 .thenReturn(java.util.Optional.empty());
 
         TransactionUpdateRequest request = new TransactionUpdateRequest(
@@ -320,13 +320,13 @@ class TransactionServiceTest {
 
     @Test
     void update_onlyOverwritesFieldsPresentInRequest() {
-        String txId = new ObjectId().toHexString();
+        String txId = UUID.randomUUID().toString();
         Transaction existing = new Transaction();
-        existing.setUserId(new ObjectId(userId));
+        existing.setUserId(UUID.fromString(userId));
         existing.setTitle("Old title");
         existing.setCategory("Old category");
         existing.setAmount(1000L);
-        when(transactionRepository.findByIdAndUserId(new ObjectId(txId), new ObjectId(userId)))
+        when(transactionRepository.findByIdAndUserId(UUID.fromString(txId), UUID.fromString(userId)))
                 .thenReturn(java.util.Optional.of(existing));
 
         TransactionUpdateRequest request = new TransactionUpdateRequest(
@@ -341,10 +341,10 @@ class TransactionServiceTest {
 
     @Test
     void update_settingRecurringWithFutureInterval_computesNextRecurringDate() {
-        String txId = new ObjectId().toHexString();
+        String txId = UUID.randomUUID().toString();
         Transaction existing = new Transaction();
-        existing.setUserId(new ObjectId(userId));
-        when(transactionRepository.findByIdAndUserId(new ObjectId(txId), new ObjectId(userId)))
+        existing.setUserId(UUID.fromString(userId));
+        when(transactionRepository.findByIdAndUserId(UUID.fromString(txId), UUID.fromString(userId)))
                 .thenReturn(java.util.Optional.of(existing));
 
         TransactionUpdateRequest request = new TransactionUpdateRequest(
@@ -357,13 +357,13 @@ class TransactionServiceTest {
 
     @Test
     void update_turningOffRecurring_clearsNextRecurringDate() {
-        String txId = new ObjectId().toHexString();
+        String txId = UUID.randomUUID().toString();
         Transaction existing = new Transaction();
-        existing.setUserId(new ObjectId(userId));
+        existing.setUserId(UUID.fromString(userId));
         existing.setRecurring(true);
         existing.setRecurringInterval(RecurringInterval.WEEKLY);
         existing.setNextRecurringDate(Instant.now().plus(1, ChronoUnit.DAYS));
-        when(transactionRepository.findByIdAndUserId(new ObjectId(txId), new ObjectId(userId)))
+        when(transactionRepository.findByIdAndUserId(UUID.fromString(txId), UUID.fromString(userId)))
                 .thenReturn(java.util.Optional.of(existing));
 
         TransactionUpdateRequest request = new TransactionUpdateRequest(
@@ -378,10 +378,9 @@ class TransactionServiceTest {
 
     @Test
     void bulkDelete_filtersOutInvalidIdsSilently() {
-        String validId = new ObjectId().toHexString();
-        com.mongodb.client.result.DeleteResult deleteResult = mock(com.mongodb.client.result.DeleteResult.class);
-        when(deleteResult.getDeletedCount()).thenReturn(1L);
-        when(mongoTemplate.remove(any(Query.class), eq(Transaction.class))).thenReturn(deleteResult);
+        String validId = UUID.randomUUID().toString();
+        when(transactionRepository.deleteByIdInAndUserId(anyList(), eq(UUID.fromString(userId))))
+                .thenReturn(1);
 
         long deleted = transactionService.bulkDelete(List.of(validId, "not-a-valid-id"), userId);
 
@@ -394,15 +393,14 @@ class TransactionServiceTest {
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("No transactions found");
 
-        verify(mongoTemplate, never()).remove(any(Query.class), eq(Transaction.class));
+        verify(transactionRepository, never()).deleteByIdInAndUserId(anyList(), any());
     }
 
     @Test
     void bulkDelete_noneMatched_throwsNotFound() {
-        String validId = new ObjectId().toHexString();
-        com.mongodb.client.result.DeleteResult deleteResult = mock(com.mongodb.client.result.DeleteResult.class);
-        when(deleteResult.getDeletedCount()).thenReturn(0L);
-        when(mongoTemplate.remove(any(Query.class), eq(Transaction.class))).thenReturn(deleteResult);
+        String validId = UUID.randomUUID().toString();
+        when(transactionRepository.deleteByIdInAndUserId(anyList(), eq(UUID.fromString(userId))))
+                .thenReturn(0);
 
         assertThatThrownBy(() -> transactionService.bulkDelete(List.of(validId), userId))
                 .isInstanceOf(ApiException.class)
@@ -413,8 +411,8 @@ class TransactionServiceTest {
 
     @Test
     void delete_transactionNotFound_throwsNotFound() {
-        String txId = new ObjectId().toHexString();
-        when(transactionRepository.findByIdAndUserId(new ObjectId(txId), new ObjectId(userId)))
+        String txId = UUID.randomUUID().toString();
+        when(transactionRepository.findByIdAndUserId(UUID.fromString(txId), UUID.fromString(userId)))
                 .thenReturn(java.util.Optional.empty());
 
         assertThatThrownBy(() -> transactionService.delete(txId, userId))
@@ -424,9 +422,9 @@ class TransactionServiceTest {
 
     @Test
     void delete_success_removesTransaction() {
-        String txId = new ObjectId().toHexString();
+        String txId = UUID.randomUUID().toString();
         Transaction existing = new Transaction();
-        when(transactionRepository.findByIdAndUserId(new ObjectId(txId), new ObjectId(userId)))
+        when(transactionRepository.findByIdAndUserId(UUID.fromString(txId), UUID.fromString(userId)))
                 .thenReturn(java.util.Optional.of(existing));
 
         transactionService.delete(txId, userId);
@@ -436,10 +434,16 @@ class TransactionServiceTest {
 
     // ── getAll ───────────────────────────────────────────────────────────────
 
+    @SuppressWarnings("unchecked")
+    private void stubFindAll(List<Transaction> content, long total, int pageNumber, int pageSize) {
+        Page<Transaction> page = new PageImpl<>(content,
+                org.springframework.data.domain.PageRequest.of(pageNumber - 1, pageSize), total);
+        when(transactionRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+    }
+
     @Test
     void getAll_computesPaginationFromTotalCount() {
-        when(mongoTemplate.find(any(Query.class), eq(Transaction.class))).thenReturn(List.of());
-        when(mongoTemplate.count(any(Query.class), eq(Transaction.class))).thenReturn(45L);
+        stubFindAll(List.of(), 45, 2, 20);
 
         TransactionListResponse response = transactionService.getAll(
                 userId, null, null, null, 2, 20);
@@ -451,10 +455,9 @@ class TransactionServiceTest {
     @Test
     void getAll_mapsTransactionsToResponses() {
         Transaction tx = new Transaction();
-        tx.setUserId(new ObjectId(userId));
+        tx.setUserId(UUID.fromString(userId));
         tx.setTitle("Groceries");
-        when(mongoTemplate.find(any(Query.class), eq(Transaction.class))).thenReturn(List.of(tx));
-        when(mongoTemplate.count(any(Query.class), eq(Transaction.class))).thenReturn(1L);
+        stubFindAll(List.of(tx), 1, 1, 20);
 
         TransactionListResponse response = transactionService.getAll(
                 userId, "groceries", TransactionType.EXPENSE, RecurringStatus.NON_RECURRING, 1, 20);
@@ -467,8 +470,8 @@ class TransactionServiceTest {
 
     @Test
     void getOne_transactionNotFound_throwsNotFoundWithSpecificMessage() {
-        String txId = new ObjectId().toHexString();
-        when(transactionRepository.findByIdAndUserId(new ObjectId(txId), new ObjectId(userId)))
+        String txId = UUID.randomUUID().toString();
+        when(transactionRepository.findByIdAndUserId(UUID.fromString(txId), UUID.fromString(userId)))
                 .thenReturn(java.util.Optional.empty());
 
         assertThatThrownBy(() -> transactionService.getOne(txId, userId))
@@ -478,10 +481,10 @@ class TransactionServiceTest {
 
     @Test
     void getOne_success_returnsMappedTransaction() {
-        String txId = new ObjectId().toHexString();
+        String txId = UUID.randomUUID().toString();
         Transaction tx = new Transaction();
         tx.setTitle("Rent");
-        when(transactionRepository.findByIdAndUserId(new ObjectId(txId), new ObjectId(userId)))
+        when(transactionRepository.findByIdAndUserId(UUID.fromString(txId), UUID.fromString(userId)))
                 .thenReturn(java.util.Optional.of(tx));
 
         TransactionResponse response = transactionService.getOne(txId, userId);

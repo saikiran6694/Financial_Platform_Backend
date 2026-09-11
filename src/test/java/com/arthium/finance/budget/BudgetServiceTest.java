@@ -7,20 +7,18 @@ import com.arthium.finance.budget.dto.BudgetUpdateRequest;
 import com.arthium.finance.common.ApiException;
 import com.arthium.finance.cron.DynamicJobScheduler;
 import com.arthium.finance.report.UserScheduleService;
-import org.bson.types.ObjectId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -38,23 +36,21 @@ class BudgetServiceTest {
     @Mock
     private BudgetSpendCalculator spendCalculator;
     @Mock
-    private MongoTemplate mongoTemplate;
-    @Mock
     private DynamicJobScheduler jobScheduler;
     @Mock
     private UserScheduleService userScheduleService;
 
     private BudgetService budgetService;
-    private final String userId = new ObjectId().toHexString();
+    private final String userId = UUID.randomUUID().toString();
 
     @BeforeEach
     void setUp() {
-        budgetService = new BudgetService(budgetRepository, spendCalculator, mongoTemplate, jobScheduler, userScheduleService);
+        budgetService = new BudgetService(budgetRepository, spendCalculator, jobScheduler, userScheduleService);
     }
 
     private static Budget budget(String category, long limitCents, boolean active) {
         Budget budget = new Budget();
-        budget.setId(new ObjectId());
+        budget.setId(UUID.randomUUID());
         budget.setCategory(category);
         budget.setLimitAmount(limitCents);
         budget.setAlertThreshold(0.8);
@@ -66,7 +62,7 @@ class BudgetServiceTest {
 
     @Test
     void create_duplicateCategoryCaseInsensitive_throwsConflict() {
-        when(mongoTemplate.exists(any(Query.class), eq(Budget.class))).thenReturn(true);
+        when(budgetRepository.existsByUserIdAndCategoryIgnoreCase(UUID.fromString(userId), "Food")).thenReturn(true);
         BudgetCreateRequest request = new BudgetCreateRequest("Food", 500.0, BudgetPeriod.MONTHLY, 0.8);
 
         assertThatThrownBy(() -> budgetService.create(request, userId))
@@ -79,10 +75,10 @@ class BudgetServiceTest {
 
     @Test
     void create_success_convertsLimitToCentsAndSchedulesBudgetJob() {
-        when(mongoTemplate.exists(any(Query.class), eq(Budget.class))).thenReturn(false);
+        when(budgetRepository.existsByUserIdAndCategoryIgnoreCase(UUID.fromString(userId), "Food")).thenReturn(false);
         when(budgetRepository.save(any(Budget.class))).thenAnswer(inv -> {
             Budget b = inv.getArgument(0);
-            b.setId(new ObjectId());
+            b.setId(UUID.randomUUID());
             return b;
         });
         when(userScheduleService.getUserTimezone(userId)).thenReturn("America/St_Johns");
@@ -110,15 +106,15 @@ class BudgetServiceTest {
     void getAll_totalsOnlyIncludeActiveBudgets() {
         Budget active = budget("Food", 50000L, true);
         Budget inactive = budget("Travel", 100000L, false);
-        when(budgetRepository.findByUserIdOrderByCreatedAtDesc(new ObjectId(userId)))
+        when(budgetRepository.findByUserIdOrderByCreatedAtDesc(UUID.fromString(userId)))
                 .thenReturn(List.of(active, inactive));
         when(spendCalculator.currentMonthSpendByCategory(userId)).thenReturn(Map.of("food", 20000L, "travel", 30000L));
         when(spendCalculator.spentFor(any(), eq("Food"))).thenReturn(20000L);
         when(spendCalculator.spentFor(any(), eq("Travel"))).thenReturn(30000L);
         when(spendCalculator.buildItem(eq(active), eq(20000L)))
-                .thenReturn(new BudgetItem(active.getId().toHexString(), "Food", 500.0, 200.0, 300.0, 40.0, BudgetStatus.ON_TRACK, 0.8, true, BudgetPeriod.MONTHLY));
+                .thenReturn(new BudgetItem(active.getId().toString(), "Food", 500.0, 200.0, 300.0, 40.0, BudgetStatus.ON_TRACK, 0.8, true, BudgetPeriod.MONTHLY));
         when(spendCalculator.buildItem(eq(inactive), eq(30000L)))
-                .thenReturn(new BudgetItem(inactive.getId().toHexString(), "Travel", 1000.0, 300.0, 700.0, 30.0, BudgetStatus.ON_TRACK, 0.8, false, BudgetPeriod.MONTHLY));
+                .thenReturn(new BudgetItem(inactive.getId().toString(), "Travel", 1000.0, 300.0, 700.0, 30.0, BudgetStatus.ON_TRACK, 0.8, false, BudgetPeriod.MONTHLY));
 
         BudgetListResponse response = budgetService.getAll(userId);
 
@@ -130,7 +126,7 @@ class BudgetServiceTest {
 
     @Test
     void getAll_noBudgets_returnsZeroTotalsAndEmptyItems() {
-        when(budgetRepository.findByUserIdOrderByCreatedAtDesc(new ObjectId(userId))).thenReturn(List.of());
+        when(budgetRepository.findByUserIdOrderByCreatedAtDesc(UUID.fromString(userId))).thenReturn(List.of());
         when(spendCalculator.currentMonthSpendByCategory(userId)).thenReturn(Map.of());
 
         BudgetListResponse response = budgetService.getAll(userId);
@@ -154,8 +150,8 @@ class BudgetServiceTest {
 
     @Test
     void update_budgetNotFound_throwsNotFound() {
-        String budgetId = new ObjectId().toHexString();
-        when(budgetRepository.findByIdAndUserId(new ObjectId(budgetId), new ObjectId(userId)))
+        String budgetId = UUID.randomUUID().toString();
+        when(budgetRepository.findByIdAndUserId(UUID.fromString(budgetId), UUID.fromString(userId)))
                 .thenReturn(Optional.empty());
         BudgetUpdateRequest request = new BudgetUpdateRequest(600.0, null, null);
 
@@ -166,11 +162,11 @@ class BudgetServiceTest {
 
     @Test
     void update_settingNewLimitAmount_resetsAlertHistory() {
-        String budgetId = new ObjectId().toHexString();
+        String budgetId = UUID.randomUUID().toString();
         Budget existing = budget("Food", 50000L, true);
         existing.setLastAlertedPeriod("2026-05");
         existing.setLastAlertedLevel("warning");
-        when(budgetRepository.findByIdAndUserId(new ObjectId(budgetId), new ObjectId(userId)))
+        when(budgetRepository.findByIdAndUserId(UUID.fromString(budgetId), UUID.fromString(userId)))
                 .thenReturn(Optional.of(existing));
         when(budgetRepository.save(any(Budget.class))).thenAnswer(inv -> inv.getArgument(0));
         when(spendCalculator.currentMonthSpendByCategory(userId)).thenReturn(Map.of());
@@ -188,11 +184,11 @@ class BudgetServiceTest {
 
     @Test
     void update_onlyChangingAlertThreshold_doesNotResetAlertHistory() {
-        String budgetId = new ObjectId().toHexString();
+        String budgetId = UUID.randomUUID().toString();
         Budget existing = budget("Food", 50000L, true);
         existing.setLastAlertedPeriod("2026-05");
         existing.setLastAlertedLevel("warning");
-        when(budgetRepository.findByIdAndUserId(new ObjectId(budgetId), new ObjectId(userId)))
+        when(budgetRepository.findByIdAndUserId(UUID.fromString(budgetId), UUID.fromString(userId)))
                 .thenReturn(Optional.of(existing));
         when(budgetRepository.save(any(Budget.class))).thenAnswer(inv -> inv.getArgument(0));
         when(spendCalculator.currentMonthSpendByCategory(userId)).thenReturn(Map.of());
@@ -219,8 +215,8 @@ class BudgetServiceTest {
 
     @Test
     void delete_budgetNotFound_throwsNotFound() {
-        String budgetId = new ObjectId().toHexString();
-        when(budgetRepository.findByIdAndUserId(new ObjectId(budgetId), new ObjectId(userId)))
+        String budgetId = UUID.randomUUID().toString();
+        when(budgetRepository.findByIdAndUserId(UUID.fromString(budgetId), UUID.fromString(userId)))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> budgetService.delete(budgetId, userId))
@@ -230,9 +226,9 @@ class BudgetServiceTest {
 
     @Test
     void delete_success_removesBudgetAndReturnsId() {
-        String budgetId = new ObjectId().toHexString();
+        String budgetId = UUID.randomUUID().toString();
         Budget existing = budget("Food", 50000L, true);
-        when(budgetRepository.findByIdAndUserId(new ObjectId(budgetId), new ObjectId(userId)))
+        when(budgetRepository.findByIdAndUserId(UUID.fromString(budgetId), UUID.fromString(userId)))
                 .thenReturn(Optional.of(existing));
 
         String result = budgetService.delete(budgetId, userId);

@@ -17,8 +17,8 @@ public record ReportResponse(
 ) {
     public static ReportResponse from(Report report) {
         return new ReportResponse(
-                report.getId() != null ? report.getId().toHexString() : null,
-                report.getUserId() != null ? report.getUserId().toHexString() : null,
+                report.getId() != null ? report.getId().toString() : null,
+                report.getUserId() != null ? report.getUserId().toString() : null,
                 report.getPeriod(),
                 report.getSentDate(),
                 report.getStatus(),

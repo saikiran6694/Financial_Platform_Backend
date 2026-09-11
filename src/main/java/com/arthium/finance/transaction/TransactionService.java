@@ -4,6 +4,7 @@ import com.arthium.finance.ai.GeminiService;
 import com.arthium.finance.ai.Prompts;
 import com.arthium.finance.common.ApiException;
 import com.arthium.finance.common.DateUtils;
+import com.arthium.finance.common.Ids;
 import com.arthium.finance.common.Json;
 import com.arthium.finance.common.MoneyUtils;
 import com.arthium.finance.common.PaginationDto;
@@ -14,12 +15,12 @@ import com.arthium.finance.transaction.dto.TransactionCreateRequest;
 import com.arthium.finance.transaction.dto.TransactionListResponse;
 import com.arthium.finance.transaction.dto.TransactionResponse;
 import com.arthium.finance.transaction.dto.TransactionUpdateRequest;
-import org.bson.types.ObjectId;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -29,23 +30,21 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
-    private final MongoTemplate mongoTemplate;
     private final CloudinaryService cloudinaryService;
     private final GeminiService geminiService;
     private final Json json;
 
     public TransactionService(TransactionRepository transactionRepository,
-                              MongoTemplate mongoTemplate,
                               CloudinaryService cloudinaryService,
                               GeminiService geminiService,
                               Json json) {
         this.transactionRepository = transactionRepository;
-        this.mongoTemplate = mongoTemplate;
         this.cloudinaryService = cloudinaryService;
         this.geminiService = geminiService;
         this.json = json;
@@ -65,7 +64,7 @@ public class TransactionService {
         }
 
         Transaction transaction = new Transaction();
-        transaction.setUserId(new ObjectId(userId));
+        transaction.setUserId(UUID.fromString(userId));
         transaction.setTitle(request.title());
         transaction.setAmount(MoneyUtils.toCents(request.amount()));
         transaction.setCategory(request.category());
@@ -87,7 +86,7 @@ public class TransactionService {
 
     public int bulkCreate(BulkTransactionCreateRequest request, String userId) {
         Instant now = Instant.now();
-        ObjectId ownerId = new ObjectId(userId);
+        UUID ownerId = UUID.fromString(userId);
 
         List<Transaction> batch = new ArrayList<>();
         for (TransactionCreateRequest tx : request.transactions()) {
@@ -111,7 +110,7 @@ public class TransactionService {
             batch.add(transaction);
         }
 
-        return transactionRepository.insert(batch).size();
+        return transactionRepository.saveAll(batch).size();
     }
 
     // ── Receipt scanning ─────────────────────────────────────────────────────
@@ -235,19 +234,18 @@ public class TransactionService {
 
     // ── Delete ───────────────────────────────────────────────────────────────
 
+    @Transactional
     public long bulkDelete(List<String> transactionIds, String userId) {
-        List<ObjectId> ids = new ArrayList<>();
+        List<UUID> ids = new ArrayList<>();
         for (String id : transactionIds) {
-            if (ObjectId.isValid(id)) {
-                ids.add(new ObjectId(id));
+            if (Ids.isValid(id)) {
+                ids.add(UUID.fromString(id));
             }
         }
 
         long deleted = 0;
         if (!ids.isEmpty()) {
-            Query query = new Query(Criteria.where("_id").in(ids)
-                    .and("user_id").is(new ObjectId(userId)));
-            deleted = mongoTemplate.remove(query, Transaction.class).getDeletedCount();
+            deleted = transactionRepository.deleteByIdInAndUserId(ids, UUID.fromString(userId));
         }
 
         if (deleted == 0) {
@@ -270,38 +268,23 @@ public class TransactionService {
                                           int pageNumber,
                                           int pageSize) {
 
-        List<Criteria> conditions = new ArrayList<>();
-        conditions.add(Criteria.where("user_id").is(new ObjectId(userId)));
+        Specification<Transaction> spec = TransactionSpecifications.combine(
+                TransactionSpecifications.userIdEquals(UUID.fromString(userId)),
+                TransactionSpecifications.titleOrCategoryContainsIgnoreCase(keyword),
+                TransactionSpecifications.typeEquals(type),
+                recurringStatus != null
+                        ? TransactionSpecifications.recurringEquals(recurringStatus == RecurringStatus.RECURRING)
+                        : null);
 
-        if (keyword != null && !keyword.isBlank()) {
-            conditions.add(new Criteria().orOperator(
-                    Criteria.where("title").regex(keyword, "i"),
-                    Criteria.where("category").regex(keyword, "i")
-            ));
-        }
-        if (type != null) {
-            conditions.add(Criteria.where("type").is(type.name()));
-        }
-        if (recurringStatus != null) {
-            conditions.add(Criteria.where("is_recurring").is(recurringStatus == RecurringStatus.RECURRING));
-        }
+        PageRequest pageRequest = PageRequest.of(
+                pageNumber - 1, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        Criteria criteria = new Criteria().andOperator(conditions.toArray(new Criteria[0]));
-
-        long skip = (long) (pageNumber - 1) * pageSize;
-
-        Query query = new Query(criteria)
-                .with(Sort.by(Sort.Direction.DESC, "created_at"))
-                .skip(skip)
-                .limit(pageSize);
-
-        List<Transaction> transactions = mongoTemplate.find(query, Transaction.class);
-        long totalCount = mongoTemplate.count(new Query(criteria), Transaction.class);
+        Page<Transaction> page = transactionRepository.findAll(spec, pageRequest);
 
         return new TransactionListResponse(
                 "Transactions fetched successfully",
-                transactions.stream().map(TransactionResponse::from).toList(),
-                PaginationDto.of(pageNumber, pageSize, totalCount)
+                page.getContent().stream().map(TransactionResponse::from).toList(),
+                PaginationDto.of(pageNumber, pageSize, page.getTotalElements())
         );
     }
 
@@ -312,11 +295,11 @@ public class TransactionService {
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private Transaction findOwned(String transactionId, String userId, String notFoundMessage) {
-        if (!ObjectId.isValid(transactionId)) {
+        if (!Ids.isValid(transactionId)) {
             throw ApiException.notFound(notFoundMessage);
         }
         return transactionRepository
-                .findByIdAndUserId(new ObjectId(transactionId), new ObjectId(userId))
+                .findByIdAndUserId(UUID.fromString(transactionId), UUID.fromString(userId))
                 .orElseThrow(() -> ApiException.notFound(notFoundMessage));
     }
 

@@ -3,31 +3,27 @@ package com.arthium.finance.budget;
 import com.arthium.finance.budget.dto.BudgetItem;
 import com.arthium.finance.common.DateUtils;
 import com.arthium.finance.common.MoneyUtils;
-import com.arthium.finance.common.Values;
 import com.arthium.finance.report.UserScheduleService;
+import com.arthium.finance.transaction.CategoryTotal;
+import com.arthium.finance.transaction.TransactionRepository;
 import com.arthium.finance.transaction.TransactionType;
-import com.mongodb.client.MongoCollection;
-import org.bson.Document;
-import org.bson.types.ObjectId;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Component
 public class BudgetSpendCalculator {
 
-    private final MongoTemplate mongoTemplate;
+    private final TransactionRepository transactionRepository;
     private final UserScheduleService userScheduleService;
 
-    public BudgetSpendCalculator(MongoTemplate mongoTemplate, UserScheduleService userScheduleService) {
-        this.mongoTemplate = mongoTemplate;
+    public BudgetSpendCalculator(TransactionRepository transactionRepository, UserScheduleService userScheduleService) {
+        this.transactionRepository = transactionRepository;
         this.userScheduleService = userScheduleService;
     }
 
@@ -47,19 +43,10 @@ public class BudgetSpendCalculator {
         Instant fromDate = DateUtils.startOfMonth(nowLocal);
         Instant toDate = DateUtils.endOfMonth(nowLocal);
 
-        MongoCollection<Document> transactions = mongoTemplate.getCollection("transactions");
-
-        List<Document> pipeline = List.of(
-                new Document("$match", new Document("user_id", new ObjectId(userId))
-                        .append("type", TransactionType.EXPENSE.name())
-                        .append("date", new Document("$gte", Date.from(fromDate)).append("$lte", Date.from(toDate)))),
-                new Document("$group", new Document("_id", new Document("$toLower", "$category"))
-                        .append("spent", new Document("$sum", new Document("$abs", "$amount"))))
-        );
-
         Map<String, Long> spendByCategory = new HashMap<>();
-        for (Document row : transactions.aggregate(pipeline)) {
-            spendByCategory.put(Values.asString(row.get("_id")), Values.asLong(row.get("spent")));
+        for (CategoryTotal row : transactionRepository.sumByLowerCategory(
+                UUID.fromString(userId), TransactionType.EXPENSE.name(), fromDate, toDate)) {
+            spendByCategory.put(row.getCategory(), row.getTotal());
         }
         return spendByCategory;
     }
@@ -90,7 +77,7 @@ public class BudgetSpendCalculator {
                 : 0.0;
 
         return new BudgetItem(
-                budget.getId() != null ? budget.getId().toHexString() : null,
+                budget.getId() != null ? budget.getId().toString() : null,
                 budget.getCategory(),
                 MoneyUtils.toDollars(limitCents),
                 MoneyUtils.toDollars(spentCents),

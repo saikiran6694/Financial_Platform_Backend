@@ -3,28 +3,23 @@ package com.arthium.finance.cron;
 import com.arthium.finance.common.DateUtils;
 import com.arthium.finance.transaction.Transaction;
 import com.arthium.finance.transaction.TransactionRepository;
-import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 public class RecurringTransactionJob implements UserJob {
 
     private static final Logger log = LoggerFactory.getLogger(RecurringTransactionJob.class);
 
-    private final MongoTemplate mongoTemplate;
     private final TransactionRepository transactionRepository;
 
-    public RecurringTransactionJob(MongoTemplate mongoTemplate, TransactionRepository transactionRepository) {
-        this.mongoTemplate = mongoTemplate;
+    public RecurringTransactionJob(TransactionRepository transactionRepository) {
         this.transactionRepository = transactionRepository;
     }
 
@@ -42,11 +37,8 @@ public class RecurringTransactionJob implements UserJob {
         log.info("Running recurring transactions for user: {}", userId);
 
         try {
-            List<Transaction> due = mongoTemplate.find(
-                    new Query(Criteria.where("user_id").is(new ObjectId(userId))
-                            .and("is_recurring").is(true)
-                            .and("next_recurring_date").lte(now)),
-                    Transaction.class);
+            List<Transaction> due = transactionRepository
+                    .findByUserIdAndRecurringTrueAndNextRecurringDateLessThanEqual(UUID.fromString(userId), now);
 
             if (due.isEmpty()) {
                 log.info("No recurring transactions for user {}", userId);
@@ -95,7 +87,7 @@ public class RecurringTransactionJob implements UserJob {
             }
 
             if (!inserts.isEmpty()) {
-                transactionRepository.insert(inserts);
+                transactionRepository.saveAll(inserts);
             }
             if (!updates.isEmpty()) {
                 transactionRepository.saveAll(updates);

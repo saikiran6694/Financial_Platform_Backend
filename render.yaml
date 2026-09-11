@@ -9,9 +9,7 @@ services:
         sync: false
       - key: ALLOWED_ORIGINS
         sync: false
-      - key: MONGO_URI
-        sync: false
-      - key: MONGO_DATABASE_NAME
+      - key: POSTGRES_URI
         sync: false
       - key: CLOUDINARY_CLOUD_NAME
         sync: false

@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
-// Auth is fully custom (JWT + MongoDB via UserRepository/AuthService), so the
+// Auth is fully custom (JWT + PostgreSQL via UserRepository/AuthService), so the
 // default in-memory UserDetailsService is unused — excluded to stop Spring Boot
 // from generating and logging a random dev password on every startup.
 @SpringBootApplication(exclude = UserDetailsServiceAutoConfiguration.class)

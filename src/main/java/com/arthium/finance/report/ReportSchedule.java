@@ -1,38 +1,42 @@
 package com.arthium.finance.report;
 
-import org.bson.types.ObjectId;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.UUID;
 
-@Document(collection = "scheduler")
+@Entity
+@Table(name = "scheduler")
 public class ReportSchedule {
 
     @Id
-    private ObjectId id;
+    @GeneratedValue
+    private UUID id;
 
-    @Field("user_id")
-    private ObjectId userId;
+    @Column(name = "user_id")
+    private UUID userId;
 
-    @Field("timezone")
+    @Column(name = "timezone")
     private String timezone;
 
-    @Field("scheduled_time")
+    @Column(name = "scheduled_time")
     private String scheduledTime;
 
-    @Field("created_at")
+    @Column(name = "created_at")
     private Instant createdAt;
 
-    @Field("updated_at")
+    @Column(name = "updated_at")
     private Instant updatedAt;
 
-    public ObjectId getId() { return id; }
-    public void setId(ObjectId id) { this.id = id; }
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
-    public ObjectId getUserId() { return userId; }
-    public void setUserId(ObjectId userId) { this.userId = userId; }
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
 
     public String getTimezone() { return timezone; }
     public void setTimezone(String timezone) { this.timezone = timezone; }

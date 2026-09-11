@@ -1,40 +1,44 @@
 package com.arthium.finance.user;
 
-import org.bson.types.ObjectId;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.UUID;
 
-@Document(collection = "users")
+@Entity
+@Table(name = "users")
 public class User {
 
     @Id
-    private ObjectId id;
+    @GeneratedValue
+    private UUID id;
 
-    @Field("name")
+    @Column(name = "name")
     private String name;
 
-    @Field("email")
+    @Column(name = "email")
     private String email;
 
-    @Field("password")
+    @Column(name = "password")
     private String password;
 
-    @Field("profile_picture")
+    @Column(name = "profile_picture")
     private String profilePicture;
 
-    @Field("created_at")
+    @Column(name = "created_at")
     private Instant createdAt;
 
-    @Field("updated_at")
+    @Column(name = "updated_at")
     private Instant updatedAt;
 
-    public ObjectId getId() { return id; }
-    public void setId(ObjectId id) { this.id = id; }
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
 
-    public String getIdAsString() { return id != null ? id.toHexString() : null; }
+    public String getIdAsString() { return id != null ? id.toString() : null; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }

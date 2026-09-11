@@ -1,12 +1,14 @@
 package com.arthium.finance.auth;
 
-import org.bson.types.ObjectId;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
-public interface ForgotPasswordOtpRepository extends MongoRepository<ForgotPasswordOtp, ObjectId> {
+public interface ForgotPasswordOtpRepository extends JpaRepository<ForgotPasswordOtp, UUID> {
 
     Optional<ForgotPasswordOtp> findFirstByEmailAndExpiresAtGreaterThan(String email, Instant moment);
 
@@ -15,4 +17,8 @@ public interface ForgotPasswordOtpRepository extends MongoRepository<ForgotPassw
 
     Optional<ForgotPasswordOtp> findFirstByEmailAndExpiresAtGreaterThanAndVerified(
             String email, Instant moment, boolean verified);
+
+    @Modifying
+    @Query("DELETE FROM ForgotPasswordOtp o WHERE o.expiresAt < :moment")
+    int deleteByExpiresAtBefore(Instant moment);
 }
